@@ -31,3 +31,5 @@
 
 en:
   hello: "Hello world"
+  start: 'start'
+  help: 'help'
