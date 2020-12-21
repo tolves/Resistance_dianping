@@ -72,7 +72,7 @@ Rails.application.configure do
   config.active_record.dump_schema_after_migration = false
 
 
-  config.telegram_updates_controller.session_store = :redis_store, { expires_in: 1.month , url: ENV['REDIS_URL'] }
+  config.telegram_updates_controller.session_store = :redis_store, { expires_in: 1.month, url: ENV['REDIS_URL'] }
 
   routes.default_url_options = { host: ENV['URL'], protocol: 'https' }
 

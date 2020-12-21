@@ -12,7 +12,6 @@ default: &default
 
 development:
   <<: *default
-#  url: postgres://stalecsuvicaiy:c57f71d82377554d7bd02a038786c2a7a7672b8dd1168d4b1ff67820ffefb6a3@ec2-54-211-99-192.compute-1.amazonaws.com:5432/d1m81jljearvce
   database: resistance_dianping
   # EDITOR=vim bin/rails credentials:edit
   username: <%= Rails.application.credentials[:username] %>
