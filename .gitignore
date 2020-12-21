@@ -32,3 +32,11 @@
 /config/master.key
 "\nconfig/database.yml" 
 "config/secrets.yml" 
+
+/config/credentials/development.key
+
+/config/credentials/production.key
+
+.idea/
+
+/bin/setup
