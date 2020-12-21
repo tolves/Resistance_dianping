@@ -1,10 +1,10 @@
 class TelegramWebhooksController < BaseController
   # Common
   def start!(*)
-    send_message t('telegram.common.start', username: referrer_name)
+    send_message t(:start)
   end
 
   def help!(*)
-    send_message t('telegram.common.help')
+    send_message t(:help)
   end
 end
