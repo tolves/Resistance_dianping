@@ -74,7 +74,7 @@ Rails.application.configure do
 
   config.telegram_updates_controller.session_store = :redis_store, { expires_in: 1.month }
 
-  # routes.default_url_options = { host: ENV['URL'], protocol: 'https' }
+  routes.default_url_options = { host: ENV['URL'], protocol: 'https' }
 
   # Inserts middleware to perform automatic connection switching.
   # The `database_selector` hash is used to pass options to the DatabaseSelector
