@@ -5,3 +5,13 @@
 #
 #   movies = Movie.create([{ name: 'Star Wars' }, { name: 'Lord of the Rings' }])
 #   Character.create(name: 'Luke', movie: movies.first)
+#
+
+json = File.read('cities.json')
+obj = JSON.parse json
+
+obj['China'].each do |p|
+  p['cities'].each do |c|
+    City.create(name: c['city'], province: p['province'])
+  end
+end
