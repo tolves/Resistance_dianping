@@ -71,6 +71,11 @@ Rails.application.configure do
   # Do not dump schema after migrations.
   config.active_record.dump_schema_after_migration = false
 
+
+  config.telegram_updates_controller.session_store = :redis_store, { expires_in: 1.month }
+
+  routes.default_url_options = {host: 'yourdomain.com', protocol: 'https'}
+
   # Inserts middleware to perform automatic connection switching.
   # The `database_selector` hash is used to pass options to the DatabaseSelector
   # middleware. The `delay` is used to determine how long to wait after a write
