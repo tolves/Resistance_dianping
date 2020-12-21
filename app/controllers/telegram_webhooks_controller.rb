@@ -7,4 +7,5 @@ class TelegramWebhooksController < BaseController
   def help!(*)
     send_message t(:help)
   end
+
 end
