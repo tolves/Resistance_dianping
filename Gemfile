@@ -27,7 +27,7 @@ gem 'bootsnap', '>= 1.4.2', require: false
 gem 'tzinfo-data', platforms: [:mingw, :mswin, :x64_mingw, :jruby]
 
 gem 'telegram-bot', '>= 0.14'
-group :development, :test do
+group :development do
   gem 'rspec-rails'
   gem 'rspec-its'
   gem 'spring-commands-rspec'
@@ -35,4 +35,5 @@ group :development, :test do
   gem 'hirb'
   gem 'pry'
   gem 'pry-rails'
+  gem 'web-console', '>= 3.3.0'
 end
