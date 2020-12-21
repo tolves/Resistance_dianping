@@ -33,3 +33,5 @@ en:
   hello: "Hello world"
   start: 'start'
   help: 'help'
+  city_miss: "找不到该城市，请检查或联系 @tolves"
+  input_restaurant_desc: "继续输入该店的详细描述"

@@ -14,6 +14,11 @@ class BaseController < Telegram::Bot::UpdatesController
     respond_with :message, text: text
   end
 
+  def reply_message(text)
+    set_locale
+    reply_with :message, text: text
+  end
+
   def set_locale
     I18n.locale = locale_code
   end
