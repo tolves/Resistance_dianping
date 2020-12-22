@@ -1,3 +1,4 @@
+require 'uri'
 class BaseController < Telegram::Bot::UpdatesController
   include Telegram::Bot::UpdatesController::MessageContext
 
@@ -6,17 +7,12 @@ class BaseController < Telegram::Bot::UpdatesController
   private
 
   def referrer_name
-    from['first_name'] || from['user_name']
+    from['username'] || from['first_name']
   end
 
-  def send_message(text)
+  def respond_with(type, *)
     set_locale
-    respond_with :message, text: text
-  end
-
-  def reply_message(text)
-    set_locale
-    reply_with :message, text: text
+    super
   end
 
   def set_locale
@@ -27,4 +23,16 @@ class BaseController < Telegram::Bot::UpdatesController
     from['language_code'][0..1]
   end
 
+  def clean_session
+    session[from['id']] = nil
+    puts "#{from['id']}: session has been cleaned"
+  end
+
+  def valid_url?(url)
+    uri = URI.parse(url)
+    puts url.match(%r{^(https?)://[^\s/$.?#].[^\s]*$})
+    uri.is_a?(URI::HTTP) && !uri.host.nil? && url.match(%r{^(https?)://[^\s/$.?#].[^\s]*$})
+  rescue URI::InvalidURIError
+    false
+  end
 end
