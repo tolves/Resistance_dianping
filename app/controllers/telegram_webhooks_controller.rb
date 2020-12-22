@@ -58,6 +58,10 @@ class TelegramWebhooksController < BaseController
       new_comment restaurant
     when 'show_restaurants'
       show_restaurants data['city']
+    when 'confirmation_pass'
+      confirmation_pass restaurant
+    when 'confirmation_reject'
+      confirmation_reject restaurant
     end
   rescue StandardError => e
     respond_with :message, text: e
@@ -68,8 +72,11 @@ class TelegramWebhooksController < BaseController
   #new_restaurant
   def create_restaurant(message)
     city = City.find_by_name session[from['id']][:city]
-    restaurant = city.restaurants.create(name: session[from['id']][:restaurant], desc: message['text'])
+    restaurant = city.restaurants.create(name: session[from['id']][:restaurant], desc: message['text'], author: user_name(from))
     respond_with :message, text: t(:input_dp_link)
+
+    # send confirmation request to admins
+    confirm_new_restaurant restaurant, from
     session[from['id']][:action] = :dp
     session[from['id']][:restaurant] = restaurant
   rescue StandardError => e
@@ -90,14 +97,14 @@ class TelegramWebhooksController < BaseController
 
   #comments
   def show_comments(restaurant)
-    comment_keyboard = [[{ text: t(:new_comment), callback_data: ActiveSupport::JSON.encode({ action: 'new_comment', restaurant: restaurant.id }) }, { text: t(:back_restaurants), callback_data: ActiveSupport::JSON.encode({ action: 'show_restaurants', restaurant: restaurant.id, city: restaurant.city.id }) }]]
+    kb = [[{ text: t(:new_comment), callback_data: ActiveSupport::JSON.encode({ action: 'new_comment', restaurant: restaurant.id }) }, { text: t(:back_restaurants), callback_data: ActiveSupport::JSON.encode({ action: 'show_restaurants', restaurant: restaurant.id, city: restaurant.city.id }) }]]
     comments = "#{restaurant.city.name} - #{restaurant.name}: \n"
     if restaurant.comments.exists?
       restaurant.comments.each { |c| comments << "#{c.commenter}: #{c.body} (#{c.updated_at.to_s}) \n" }
     else comments << t(:no_comments)
     end
 
-    respond_with :message, text: comments, reply_markup: { inline_keyboard: comment_keyboard }
+    respond_with :message, text: comments, reply_markup: { inline_keyboard: kb }
   end
 
   def new_comment(restaurant)
@@ -107,7 +114,7 @@ class TelegramWebhooksController < BaseController
 
   def create_comment(message)
     restaurant = session[from['id']][:restaurant]
-    restaurant.comments.create(body: message['text'], commenter: referrer_name)
+    restaurant.comments.create(body: message['text'], commenter: user_name(from))
     show_comments restaurant
     session[from['id']] = nil
   rescue StandardError => e
@@ -116,12 +123,39 @@ class TelegramWebhooksController < BaseController
 
   def show_restaurants(city_id)
     city = City.find(city_id)
-    restaurants = restaurants_keyboard city
-    respond_with :message, text: "#{city.name}美食推荐: ", reply_markup: { inline_keyboard: restaurants }
+    kb = restaurants_keyboard city
+    respond_with :message, text: "#{city.name}美食推荐: ", reply_markup: { inline_keyboard: kb }
   end
 
   def restaurants_keyboard(city)
-    city.restaurants.map { |r| [{ text: "#{r.name}: #{r.desc}", callback_data: ActiveSupport::JSON.encode({ action: 'show_comments', restaurant: r.id }) }, { text: t(:link), url: (r.dp_link.blank? ? "https://www.google.com/search?q=#{city.name}+#{r.name}" : r.dp_link) }] }
+    city.restaurants.confirmation.map { |r| [{ text: "#{r.name}: #{r.desc}", callback_data: ActiveSupport::JSON.encode({ action: 'show_comments', restaurant: r.id }) }, { text: t(:link), url: (r.dp_link.blank? ? "https://www.google.com/search?q=#{city.name}+#{r.name}" : r.dp_link) }] }
+  end
+
+  def confirm_new_restaurant(restaurant, user)
+    kb = confirmation_keyboard restaurant
+    text = "#{user_name(user)} #{t(:submit_new_restaurant)}: \n"
+    text << "#{restaurant.city.name}: \n #{restaurant.name}: #{restaurant.desc}"
+    Admin.all.each do |admin|
+      bot.send_message chat_id: admin.chat_id, text: text, reply_markup: { inline_keyboard: kb }
+    end
+  end
+
+  def confirmation_keyboard(restaurant)
+    [[{ text: t(:confirmation_pass), callback_data: ActiveSupport::JSON.encode({ action: 'confirmation_pass', restaurant: restaurant.id }) }, { text: t(:confirmation_reject), callback_data: ActiveSupport::JSON.encode({ action: 'confirmation_reject', restaurant: restaurant.id }) }]]
+  end
+
+  def confirmation_pass(restaurant)
+    restaurant.update(confirmation: true)
+    answer_callback_query t(:pass_new_confirmation)
+  rescue StandardError => e
+    respond_with :message, text: e
+  end
+
+  def confirmation_reject(restaurant)
+    restaurant.destroy!
+    answer_callback_query t(:reject_new_confirmation)
+  rescue StandardError => e
+    respond_with :message, text: e
   end
 
 end

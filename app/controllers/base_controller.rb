@@ -6,12 +6,16 @@ class BaseController < Telegram::Bot::UpdatesController
 
   private
 
-  def referrer_name
-    from['username'] || from['first_name']
+  def user_name(user)
+    user['user_name'].blank? ? full_name(user) : "@#{user['user_name']}"
+  end
+
+  def full_name(user)
+    "#{user['first_name']} #{user['last_name']}"
   end
 
   def respond_with(type, *)
-    set_locale
+    # set_locale
     super
   end
 
@@ -20,7 +24,7 @@ class BaseController < Telegram::Bot::UpdatesController
   end
 
   def locale_code
-    from['language_code'][0..1]
+    # from['language_code'][0..1]
   end
 
   def clean_session
