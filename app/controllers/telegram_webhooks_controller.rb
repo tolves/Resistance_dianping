@@ -119,7 +119,7 @@ class TelegramWebhooksController < BaseController
       comments << t(:no_comments)
     end
     # edit_message :reply_markup, text: comments, reply_markup: { inline_keyboard: kb }
-    edit_message :text, text: comments, reply_markup: { inline_keyboard: kb }
+    respond_with :message, text: comments, reply_markup: { inline_keyboard: kb }
     puts 'aaaa'
   end
 
