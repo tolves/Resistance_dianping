@@ -16,7 +16,7 @@ class TelegramWebhooksController < BaseController
     return reply_with :message, text: t(:city_query) if args&.size != 1
 
     city = City.find_by_name args
-    show_restaurants city.id
+    list_restaurants city.id, 0
   end
 
   def add!(*args)
@@ -63,12 +63,11 @@ class TelegramWebhooksController < BaseController
 
     case data['action']
     when 'show_comments'
-      show_comments restaurant
+      show_comments restaurant, data['page']
     when 'new_comment'
       new_comment restaurant
     when 'show_restaurants'
-      puts data['city_id']
-      show_restaurants data['city_id']
+      show_restaurants data['city_id'], (data['page'].blank? ? 0 : data['page'])
     when 'confirmation_pass'
       confirmation_pass restaurant
     when 'confirmation_reject'
@@ -109,8 +108,8 @@ class TelegramWebhooksController < BaseController
   end
 
   #comments
-  def show_comments(restaurant)
-    kb = [[{ text: t(:new_comment), callback_data: ActiveSupport::JSON.encode({ action: 'new_comment', restaurant: restaurant.id }) }, { text: t(:back_restaurants), callback_data: ActiveSupport::JSON.encode({ action: 'show_restaurants', restaurant: restaurant.id, city_id: restaurant.city.id }) }]]
+  def show_comments(restaurant, page = 0)
+    kb = [[{ text: t(:new_comment), callback_data: ActiveSupport::JSON.encode({ action: 'new_comment', restaurant: restaurant.id }) }, { text: t(:back_restaurants), callback_data: ActiveSupport::JSON.encode({ action: 'show_restaurants', restaurant: restaurant.id, city_id: restaurant.city.id, page: page }) }]]
     comments = "#{restaurant.city.name} - #{restaurant.name}: \n"
     comments << "#{restaurant.desc} \n"
     if restaurant.comments.exists?
@@ -135,19 +134,38 @@ class TelegramWebhooksController < BaseController
     respond_with :message, text: e
   end
 
-  def show_restaurants(city_id)
+  def list_restaurants(city_id, page)
     city = City.find(city_id)
-    kb = restaurants_keyboard city
-    respond_with :message, text: "#{city.name} #{t(:recommendation)}", reply_markup: { inline_keyboard: kb }
+    kb = restaurants_keyboard city, page
+    respond_with :message, text: "#{city.name} #{t(:recommendation)}", reply_markup: { inline_keyboard: kb, resize_keyboard: true }
   end
 
-  def restaurants_keyboard(city)
-    city.restaurants.confirmation.map { |r| [{ text: "#{r.name}: #{r.desc}", callback_data: ActiveSupport::JSON.encode({ action: 'show_comments', restaurant: r.id }) }, { text: t(:link), url: (r.dp_link.blank? ? "https://www.google.com/search?q=#{city.name}+#{r.name}" : r.dp_link) }] }
+  def show_restaurants(city_id, page = 0)
+    city = City.find(city_id)
+    kb = restaurants_keyboard city, page
+    edit_restaurants_list city, kb
+  end
+
+  def restaurants_keyboard(city, page)
+    restaurants = city.restaurants.confirmation
+    kb = restaurants.limit(10).offset( page * 10 ).map { |r| [{ text: "#{r.name}: #{r.desc}", callback_data: ActiveSupport::JSON.encode({ action: 'show_comments', restaurant: r.id, page: page }) }, { text: t(:link), url: (r.dp_link.blank? ? "https://www.google.com/search?q=#{city.name}+#{r.name}" : r.dp_link) }] }
+    pages = []
+    (1..restaurants.size / 10).each do |p|
+      next if p == (page + 1)
+
+      pages.push({ text: p, callback_data: ActiveSupport::JSON.encode({ action: 'show_restaurants', city_id: city.id, page: (p - 1) }) })
+    end
+    puts pages
+    kb.push pages
+  end
+
+  def edit_restaurants_list(city, kb)
+    edit_message :reply_markup, text: "#{city.name} #{t(:recommendation)}", reply_markup: { inline_keyboard: kb }
   end
 
   def city_keyboard
     city_ids = Restaurant.select(:city_id).group(:city_id)
-    available = city_ids.map {|c| { text: c.city.name, callback_data: ActiveSupport::JSON.encode({ action: 'show_restaurants', city_id: c.city_id }) }}
+    available = city_ids.map {|c| { text: c.city.name, callback_data: ActiveSupport::JSON.encode({ action: 'show_restaurants', city_id: c.city_id}) }}
     available.in_groups_of(6, false)
   end
 
@@ -157,7 +175,7 @@ class TelegramWebhooksController < BaseController
     text = "#{user_name(user)} #{t(:submit_new_restaurant)}: \n"
     text << "#{restaurant.city.name}: \n #{restaurant.name}: #{restaurant.desc}"
     Admin.all.each do |admin|
-      bot.send_message chat_id: admin.chat_id, text: text, reply_markup: { inline_keyboard: kb }
+      bot.send_message chat_id: admin.chat_id, text: text, reply_markup: { inline_keyboard: kb, one_time_keyboard: true }
     end
   end
 
