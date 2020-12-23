@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2020_12_22_213706) do
+ActiveRecord::Schema.define(version: 2020_12_23_144341) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -41,12 +41,13 @@ ActiveRecord::Schema.define(version: 2020_12_22_213706) do
     t.bigint "city_id"
     t.string "name"
     t.string "dp_link"
-    t.text "desc"
+    t.text "description"
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
     t.string "res_choice"
     t.string "author"
     t.boolean "confirmation", default: false
+    t.index "to_tsvector('english'::regconfig, (((name)::text || ' '::text) || description))", name: "restaurants_idx", using: :gin
     t.index ["city_id"], name: "index_restaurants_on_city_id"
   end
 

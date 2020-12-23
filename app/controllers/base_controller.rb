@@ -16,6 +16,10 @@ class BaseController < Telegram::Bot::UpdatesController
     "#{user['first_name']} #{user['last_name']}"
   end
 
+  def pg_offset
+    15
+  end
+
   def clean_session
     session[from['id']] = nil
     puts "#{from['id']}: session has been cleaned"
