@@ -35,7 +35,7 @@ en:
   input_restaurant_description: "请继续输入关于该店的描述，例如特点，推荐菜品等，以空格或逗号分隔关键词，例如：烤鸭 老北京 邓大哥"
   input_dp_link: "请继续输入馆子链接，推荐大众点评链接，或输入 'exit' 结束操作（馆子信息已保存）"
   add_help: "输入格式为 '/add 城市 馆子名'，例如 '/add 南京 李记牛肉锅贴'，馆子名可以加上xx路店等标志，馆子名中不要有空格(如果有的话用其他符号代替)"
-  cant_find_city: "找不到该城市，请检查或联系 @tolves"
+  cant_find_city: "找不到该城市，城市名为中文，请检查或联系 @tolves"
   add_description: "请输入简单描述，例如该店特点，推荐菜品等"
   add_restaurant_successful: "成功添加馆子，感谢您为蓝军吃吃吃做出的努力，稍等片刻后该馆子即可显示，如果15分钟后还未显示，请联系 @tolves"
   city_query: "城市查询为 '/city 城市名'"
