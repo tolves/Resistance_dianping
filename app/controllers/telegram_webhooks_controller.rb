@@ -1,5 +1,5 @@
 class TelegramWebhooksController < BaseController
-  before_action :clean_session, only: [:city!, :add!]
+  before_action :clean_session, only: [:start!, :city!, :add!, :q!]
 
   # Commons
   def start!(*)
@@ -16,7 +16,7 @@ class TelegramWebhooksController < BaseController
     return reply_with :message, text: t(:city_query) if args&.size != 1
 
     city = City.find_by_name args
-    return reply_with :message, text: t(:cant_find_city) unless city
+    return reply_with :message, text: t(:cant_find_city) if city.blank?
 
     list_restaurants city.id, 0
   end
@@ -46,9 +46,9 @@ class TelegramWebhooksController < BaseController
     restaurants = search keywords
     return respond_with :message, text: t(:cant_find_restaurants) if restaurants.size == 0
 
-    kb = restaurants_keyboard restaurants, 0
+    session[from['id']] = { restaurants: restaurants }
+    kb = search_results_keyboard 0
     respond_with :message, text: keywords, reply_markup: { inline_keyboard: kb, resize_keyboard: true }
-    # TODO search keywords
   end
 
   def mitsui!(*)
@@ -85,10 +85,14 @@ class TelegramWebhooksController < BaseController
       new_comment restaurant
     when 'edit_restaurants'
       edit_restaurants data['city_id'], page
+    when 'list_restaurants'
+      list_restaurants data['city_id'], page
     when 'confirmation_pass'
       confirmation_pass restaurant
     when 'confirmation_reject'
       confirmation_reject restaurant
+    when 'edit_search_results'
+      edit_search_results page
     end
   rescue StandardError => e
     respond_with :message, text: e
@@ -153,15 +157,16 @@ class TelegramWebhooksController < BaseController
     respond_with :message, text: e
   end
 
-  def list_restaurants(city_id, page)
+  def list_restaurants(city_id, page = 0)
     restaurants = find_restaurants city_id
-    kb = restaurants_keyboard restaurants, page
+    kb = restaurants_keyboard restaurants, city_id, page
+
     respond_with :message, text: "#{City.find(city_id).name} #{t(:recommendation)}", reply_markup: { inline_keyboard: kb, resize_keyboard: true }
   end
 
   def edit_restaurants(city_id, page = 0)
     restaurants = find_restaurants city_id
-    kb = restaurants_keyboard restaurants, page
+    kb = restaurants_keyboard restaurants, city_id, page
     edit_message :text, text: "#{City.find(city_id).name} #{t(:recommendation)}", reply_markup: { inline_keyboard: kb }
   end
 
@@ -169,20 +174,36 @@ class TelegramWebhooksController < BaseController
     City.find(city_id).restaurants.confirmation
   end
 
-  def restaurants_keyboard(restaurants, page)
+  def restaurants_keyboard(restaurants, city_id, page)
     kb = restaurants.limit(pg_offset).offset(page * pg_offset).map { |r| [{ text: "#{r.name}: #{r.description}", callback_data: ActiveSupport::JSON.encode({ action: 'show_comments', restaurant: r.id}) }, { text: t(:link), url: (r.dp_link.blank? ? "https://www.google.com/search?q=#{r.city.name}+#{r.name}" : r.dp_link) }] }
     pages = []
-    (1..restaurants.size / pg_offset).each do |p|
+    (1..(restaurants.size / pg_offset) + 1).each do |p|
       next if p == (page + 1)
-      pages.push({ text: p, callback_data: ActiveSupport::JSON.encode({ action: 'edit_restaurants', city_id: city.id, page: (p - 1) }) })
+
+      pages.push({ text: p, callback_data: ActiveSupport::JSON.encode({ action: 'edit_restaurants', city_id: city_id, page: (p - 1) }) })
     end
     kb.push pages
   end
 
   def city_keyboard
     city_ids = Restaurant.confirmation.select(:city_id).group(:city_id)
-    available = city_ids.map {|c| { text: c.city.name, callback_data: ActiveSupport::JSON.encode({ action: 'edit_restaurants', city_id: c.city_id}) }}
+    available = city_ids.map {|c| { text: c.city.name, callback_data: ActiveSupport::JSON.encode({ action: 'list_restaurants', city_id: c.city_id}) }}
     available.in_groups_of(6, false)
+  end
+
+  def search_results_keyboard(page)
+    kb = session[from['id']][:restaurants].limit(pg_offset).offset(page * pg_offset).map { |r| [{ text: "#{r.name}: #{r.description}", callback_data: ActiveSupport::JSON.encode({ action: 'show_comments', restaurant: r.id}) }, { text: t(:link), url: (r.dp_link.blank? ? "https://www.google.com/search?q=#{r.city.name}+#{r.name}" : r.dp_link) }] }
+    pages = []
+    (1..session[from['id']][:restaurants].size / pg_offset).each do |p|
+      next if p == (page + 1)
+      pages.push({ text: p, callback_data: ActiveSupport::JSON.encode({ action: 'edit_search_results', page: (p - 1) }) })
+    end
+    kb.push pages
+  end
+
+  def edit_search_results(page)
+    kb = search_results_keyboard(page)
+    edit_message :text, text: t(:search_results), reply_markup: { inline_keyboard: kb, resize_keyboard: true }
   end
 
   #admin
@@ -214,7 +235,6 @@ class TelegramWebhooksController < BaseController
   end
 
   def search(args)
-    # Restaurant.confirmation.where(["restaurants.name like ? OR restaurants.description like ?", args, args])
     Restaurant.confirmation.where("to_tsvector('english', name || ' ' || description) @@ to_tsquery(?)", args)
   end
 
