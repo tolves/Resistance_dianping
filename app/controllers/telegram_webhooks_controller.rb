@@ -59,15 +59,16 @@ class TelegramWebhooksController < BaseController
 
   def callback_query(data)
     data = JSON.parse data
+    page = (data['page'].blank? ? 0 : data['page'])
     restaurant = Restaurant.find(data['restaurant']) unless data['restaurant'].blank?
 
     case data['action']
     when 'show_comments'
-      show_comments restaurant, data['page']
+      show_comments restaurant
     when 'new_comment'
       new_comment restaurant
     when 'show_restaurants'
-      show_restaurants data['city_id'], (data['page'].blank? ? 0 : data['page'])
+      show_restaurants data['city_id'], page
     when 'confirmation_pass'
       confirmation_pass restaurant
     when 'confirmation_reject'
@@ -108,16 +109,18 @@ class TelegramWebhooksController < BaseController
   end
 
   #comments
-  def show_comments(restaurant, page = 0)
-    kb = [[{ text: t(:new_comment), callback_data: ActiveSupport::JSON.encode({ action: 'new_comment', restaurant: restaurant.id }) }, { text: t(:back_restaurants), callback_data: ActiveSupport::JSON.encode({ action: 'show_restaurants', restaurant: restaurant.id, city_id: restaurant.city.id, page: page }) }]]
+  def show_comments(restaurant)
+    kb = [[{ text: t(:new_comment), callback_data: ActiveSupport::JSON.encode({ action: 'new_comment', restaurant: restaurant.id }) }, { text: t(:back_restaurants), callback_data: ActiveSupport::JSON.encode({ action: 'show_restaurants', restaurant: restaurant.id, city_id: restaurant.city.id }) }]]
     comments = "#{restaurant.city.name} - #{restaurant.name}: \n"
     comments << "#{restaurant.desc} \n"
     if restaurant.comments.exists?
       restaurant.comments.each { |c| comments << "#{c.commenter}: #{c.body} (#{c.updated_at.to_s}) \n" }
-    else comments << t(:no_comments)
+    else
+      comments << t(:no_comments)
     end
-
-    respond_with :message, text: comments, reply_markup: { inline_keyboard: kb }
+    # edit_message :reply_markup, text: comments, reply_markup: { inline_keyboard: kb }
+    edit_message :text, text: comments, reply_markup: { inline_keyboard: kb }
+    puts 'aaaa'
   end
 
   def new_comment(restaurant)
@@ -148,19 +151,17 @@ class TelegramWebhooksController < BaseController
 
   def restaurants_keyboard(city, page)
     restaurants = city.restaurants.confirmation
-    kb = restaurants.limit(10).offset( page * 10 ).map { |r| [{ text: "#{r.name}: #{r.desc}", callback_data: ActiveSupport::JSON.encode({ action: 'show_comments', restaurant: r.id, page: page }) }, { text: t(:link), url: (r.dp_link.blank? ? "https://www.google.com/search?q=#{city.name}+#{r.name}" : r.dp_link) }] }
+    kb = restaurants.limit(10).offset(page * 10).map { |r| [{ text: "#{r.name}: #{r.desc}", callback_data: ActiveSupport::JSON.encode({ action: 'show_comments', restaurant: r.id}) }, { text: t(:link), url: (r.dp_link.blank? ? "https://www.google.com/search?q=#{city.name}+#{r.name}" : r.dp_link) }] }
     pages = []
     (1..restaurants.size / 10).each do |p|
       next if p == (page + 1)
-
       pages.push({ text: p, callback_data: ActiveSupport::JSON.encode({ action: 'show_restaurants', city_id: city.id, page: (p - 1) }) })
     end
-    puts pages
     kb.push pages
   end
 
   def edit_restaurants_list(city, kb)
-    edit_message :reply_markup, text: "#{city.name} #{t(:recommendation)}", reply_markup: { inline_keyboard: kb }
+    edit_message :text, text: "#{city.name} #{t(:recommendation)}", reply_markup: { inline_keyboard: kb }
   end
 
   def city_keyboard
