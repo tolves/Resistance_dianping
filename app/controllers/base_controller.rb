@@ -8,6 +8,10 @@ class BaseController < Telegram::Bot::UpdatesController
 
   private
 
+  def tolves
+    75708608
+  end
+
   def user_name(user)
     user['user_name'].blank? ? full_name(user) : "@#{user['user_name']}"
   end
