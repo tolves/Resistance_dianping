@@ -61,4 +61,6 @@ en:
   cant_find_restaurants: "找不到相关馆子"
   doesnt_has_data: "没有数据"
   exit: "已退出"
+  list: "馆子列表："
+  forwardable: "点击返回可转发的html格式列表"
 
