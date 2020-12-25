@@ -24,8 +24,8 @@ class BaseController < Telegram::Bot::UpdatesController
     15
   end
 
-  def clean_session
-    session[from['id']] = nil
+  def session_destroy
+    session.destroy
     puts "#{from['id']}: session has been cleaned"
   end
 
@@ -49,7 +49,4 @@ class BaseController < Telegram::Bot::UpdatesController
     page_kb
   end
 
-  def save_restaurants_session(restaurants)
-    session[from['id']] = { restaurants: restaurants }
-  end
 end

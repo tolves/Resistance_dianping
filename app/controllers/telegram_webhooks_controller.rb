@@ -1,9 +1,8 @@
 class TelegramWebhooksController < BaseController
-  before_action :clean_session, only: [:start!, :city!, :add!, :q!]
+  before_action :session_destroy, only: [:start!, :city!, :add!, :q!]
 
   # Commons
   def start!(*)
-    cities = City.all
     kb = city_keyboard
     respond_with :message, text: t(:availible_cities), reply_markup: { inline_keyboard: kb }
   end
@@ -28,7 +27,9 @@ class TelegramWebhooksController < BaseController
     city = City.find_by_name city_name
     return t(:cant_find_city) if city.blank?
 
-    session[from['id']] = { action: :description, city: city_name, restaurant: restaurant_name }
+    session[:action] = :description
+    session[:city] = city_name
+    session[:restaurant] = restaurant_name
     reply_with :message, text: t(:add_description)
   end
 
@@ -46,7 +47,7 @@ class TelegramWebhooksController < BaseController
     restaurants = search keywords
     return respond_with :message, text: t(:cant_find_restaurants) if restaurants.blank?
 
-    session[from['id']] = { restaurants: restaurants }
+    session[:restaurants] = restaurants
     kb = restaurants_keyboard 0
     respond_with :message, text: keywords, reply_markup: { inline_keyboard: kb, resize_keyboard: true }
   end
@@ -57,17 +58,20 @@ class TelegramWebhooksController < BaseController
   end
 
   def message(message)
-    return if session[from['id']].blank?
+    return if session.blank?
 
-    return session[from['id']] = nil if message['text'] == 'exit'
+    if message['text'] == 'exit'
+      respond_with :message, text: t(:exit)
+      session_destroy
+    end
 
-    case session[from['id']][:action]
+    case session[:action]
     when :description
-      create_restaurant message
-    when :dp
-      dp_link(message)
+      create_restaurant message['text']
+    when :dp_link
+      dp_link message['text']
     when :create_comment
-      create_comment(message)
+      create_comment message['text']
     end
 
   rescue StandardError => e
@@ -77,7 +81,7 @@ class TelegramWebhooksController < BaseController
   def callback_query(data)
     data = JSON.parse data
     page = (data['page'].blank? ? 0 : data['page'])
-    restaurant = Restaurant.find(data['restaurant']) unless data['restaurant'].blank?
+    restaurant = Restaurant.unscoped.find(data['restaurant']) unless data['restaurant'].blank?
 
     case data['action']
     when 'show_comments'
@@ -102,28 +106,27 @@ class TelegramWebhooksController < BaseController
   private
 
   #new_restaurant
-  def create_restaurant(message)
-    city = City.find_by_name session[from['id']][:city]
-    restaurant = city.restaurants.create(name: session[from['id']][:restaurant], description: message['text'], author: user_name(from))
+  def create_restaurant(text)
+    city = City.find_by_name session[:city]
+    restaurant = city.restaurants.create(name: session[:restaurant], description: text, author: user_name(from), confirmation: false)
     respond_with :message, text: t(:input_dp_link)
 
     # send confirmation request to admins
     confirm_new_restaurant restaurant, from
-    session[from['id']][:action] = :dp
-    session[from['id']][:restaurant] = restaurant
+    session[:action] = :dp_link
+    session[:restaurant] = restaurant
   rescue StandardError => e
     respond_with :message, text: e
   end
 
   #add link of the new restaurant
-  def dp_link(message)
-    restaurant = session[from['id']][:restaurant]
-    puts valid_url?(message['text'])
-    return respond_with(:message, text: t(:url_validation_failed)) unless valid_url?(message['text'])
+  def dp_link(text)
+    restaurant = session[:restaurant]
+    return respond_with(:message, text: t(:url_validation_failed)) unless valid_url?(text)
 
-    restaurant.update(dp_link: message['text'])
+    restaurant.update(dp_link: text)
     respond_with :message, text: t(:add_restaurant_successful)
-    session[from['id']] = nil
+    session.destroy
   rescue StandardError => e
     respond_with :message, text: e
   end
@@ -146,26 +149,27 @@ class TelegramWebhooksController < BaseController
   end
 
   def new_comment(restaurant, page)
-    session[from['id']][:action] = :create_comment
-    session[from['id']][:restaurant] = restaurant
-    session[from['id']][:page] = page
+    session[:action] = :create_comment
+    session[:restaurant] = restaurant
+    session[:page] = page
     respond_with :message, text: t(:create_comment)
   end
 
-  def create_comment(message)
-    restaurant = session[from['id']][:restaurant]
-    restaurant.comments.create(body: message['text'], commenter: user_name(from))
-    show_comments restaurant, session[from['id']][:page]
-    session[from['id']][:action] = nil
+  def create_comment(text)
+    restaurant = session[:restaurant]
+    restaurant.comments.create(body: text, commenter: user_name(from))
+    show_comments restaurant, session[:page]
+    session[:action] = nil
   rescue StandardError => e
     respond_with :message, text: e
   end
 
   def list_restaurants(city_id, page = 0)
-    restaurants = City.find(city_id).restaurants.confirmation
+    restaurants = City.find(city_id).restaurants
     return respond_with :message, text: "#{City.find(city_id).name} #{t(:doesnt_has_data)}" if restaurants.blank?
-    save_restaurants_session(restaurants)
-    kb = restaurants_keyboard(0)
+
+    session[:restaurants] = restaurants
+    kb = restaurants_keyboard(page)
     respond_with :message, text: t(:recommendation), reply_markup: { inline_keyboard: kb, resize_keyboard: true }
   end
 
@@ -175,12 +179,12 @@ class TelegramWebhooksController < BaseController
   end
 
   def restaurants_keyboard(page)
-    kb = session[from['id']][:restaurants].limit(pg_offset).offset(page * pg_offset).map { |r| [{ text: "#{r.name}: #{r.description}", callback_data: ActiveSupport::JSON.encode({ action: 'show_comments', restaurant: r.id, page: page}) }, { text: t(:link), url: (r.dp_link.blank? ? "https://www.google.com/search?q=#{r.city.name}+#{r.name}" : r.dp_link) }] }
-    kb.push pagination(session[from['id']][:restaurants], page: page, action: 'edit_restaurants')
+    kb = session[:restaurants].limit(pg_offset).offset(page * pg_offset).map { |r| [{ text: "#{r.name}: #{r.description}", callback_data: ActiveSupport::JSON.encode({ action: 'show_comments', restaurant: r.id, page: page}) }, { text: t(:link), url: (r.dp_link.blank? ? "https://www.google.com/search?q=#{r.city.name}+#{r.name}" : r.dp_link) }] }
+    kb.push pagination(session[:restaurants], page: page, action: 'edit_restaurants')
   end
 
   def city_keyboard
-    city_ids = Restaurant.confirmation.select(:city_id).group(:city_id)
+    city_ids = Restaurant.select(:city_id).group(:city_id)
     available = city_ids.map {|c| { text: c.city.name, callback_data: ActiveSupport::JSON.encode({ action: 'list_restaurants', city_id: c.city_id}) }}
     available.in_groups_of(6, false)
   end
@@ -214,7 +218,7 @@ class TelegramWebhooksController < BaseController
   end
 
   def search(args)
-    Restaurant.confirmation.where("to_tsvector('english', name || ' ' || description) @@ to_tsquery(?)", args)
+    Restaurant.where("to_tsvector('english', name || ' ' || description) @@ to_tsquery(?)", args)
   end
 
 end
