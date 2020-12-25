@@ -34,7 +34,7 @@ class TelegramWebhooksController < BaseController
   end
 
   def admin!(*args)
-    return if from['id'] != 75708608
+    return if from['id'] != tolves
 
     Admin.create(chat_id: args)
     respond_with :message, text: t(:add_admin_success)
