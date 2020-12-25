@@ -1,24 +1,37 @@
 # README
 
-This README would normally document whatever steps are necessary to get the
-application up and running.
+Deployment steps:
 
-Things you may want to cover:
+1. set telegram bot token in credentials:
 
-* Ruby version
+``` EDITOR=vim bin/rails credentials:edit ```
+```
+telegram:
+  bot:
+    token: #token
+    username: #botname
+```
 
-* System dependencies
+2. Deploy to Heroku:
 
-* Configuration
+* set config DATABASE_URL
 
-* Database creation
+* set config RAILS_MASTER_KEY
 
-* Database initialization
+* set config URL = heroku URL
 
-* How to run the test suite
+* heroku run command:
 
-* Services (job queues, cache servers, search engines, etc.)
+  - migrate database schemas:
 
-* Deployment instructions
+  ``` rails db:migrate ```
 
-* ...
+  - create all the default record
+
+  ``` rails db:seed ```
+
+  - setup webhook
+
+  ``` bin/rake telegram:bot:set_webhook RAILS_ENV=production ```
+
+[telegram-bot-rails](https://github.com/telegram-bot-rb/telegram-bot)
