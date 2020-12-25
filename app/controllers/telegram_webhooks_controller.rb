@@ -44,7 +44,7 @@ class TelegramWebhooksController < BaseController
 
   def q!(*args)
     keywords = args.join('_')
-    restaurants = search keywords
+    restaurants = Restaurant.search keywords
     return respond_with :message, text: t(:cant_find_restaurants) if restaurants.blank?
 
     session[:restaurants] = restaurants
@@ -227,10 +227,6 @@ class TelegramWebhooksController < BaseController
     answer_callback_query t(:reject_new_confirmation)
   rescue StandardError => e
     respond_with :message, text: e
-  end
-
-  def search(args)
-    Restaurant.where("to_tsvector('english', name || ' ' || description) @@ to_tsquery(?)", args)
   end
 
 end
