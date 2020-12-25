@@ -1,5 +1,7 @@
 # README
 
+This app uses [telegram-bot](https://github.com/telegram-bot-rb/telegram-bot) gem.
+
 Deployment steps:
 
 1. set telegram bot token in credentials:
@@ -33,5 +35,3 @@ telegram:
   - setup webhook
 
   ``` bin/rake telegram:bot:set_webhook RAILS_ENV=production ```
-
-[telegram-bot-rails](https://github.com/telegram-bot-rb/telegram-bot)
