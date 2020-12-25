@@ -43,7 +43,7 @@ class TelegramWebhooksController < BaseController
   end
 
   def q!(*args)
-    keywords = args.join(' ')
+    keywords = args.join('_')
     restaurants = search keywords
     return respond_with :message, text: t(:cant_find_restaurants) if restaurants.blank?
 
@@ -96,6 +96,8 @@ class TelegramWebhooksController < BaseController
       confirmation_pass restaurant
     when 'confirmation_reject'
       confirmation_reject restaurant
+    when 'markdown_restaurants'
+      markdown_restaurants page
     end
   rescue StandardError => e
     respond_with :message, text: e
@@ -179,8 +181,18 @@ class TelegramWebhooksController < BaseController
   end
 
   def restaurants_keyboard(page)
-    kb = session[:restaurants].limit(pg_offset).offset(page * pg_offset).map { |r| [{ text: "#{r.name}: #{r.description}", callback_data: ActiveSupport::JSON.encode({ action: 'show_comments', restaurant: r.id, page: page}) }, { text: t(:link), url: (r.dp_link.blank? ? "https://www.google.com/search?q=#{r.city.name}+#{r.name}" : r.dp_link) }] }
+    kb = session[:restaurants].limit(pg_offset).offset(page * pg_offset).map { |r| [{ text: "#{r.name}: #{r.description}", callback_data: ActiveSupport::JSON.encode({ action: 'show_comments', restaurant: r.id, page: page}) }, { text: t(:link), url: r.link }] }
     kb.push pagination(session[:restaurants], page: page, action: 'edit_restaurants')
+    kb.push [{text: t(:forwardable), callback_data: ActiveSupport::JSON.encode({ action: 'markdown_restaurants', page: page})}]
+  end
+
+  def markdown_restaurants(page)
+    text = "<b>#{t(:list)}</b> \n"
+    session[:restaurants].limit(pg_offset).offset(page * pg_offset).each do |r|
+      text << "#{r.name.html_safe}: #{r.description.html_safe}. <a href=\"#{r.link}\">链接</a> \n"
+    end
+    puts text
+    respond_with :message, text: text, parse_mode: :HTML
   end
 
   def city_keyboard

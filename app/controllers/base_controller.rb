@@ -38,7 +38,6 @@ class BaseController < Telegram::Bot::UpdatesController
   end
 
   def pagination(resource, *args)
-    #TODO move pagination function to here
     page_kb = []
 
     (1..(resource.size / pg_offset) + 1).each do |p|
@@ -48,5 +47,4 @@ class BaseController < Telegram::Bot::UpdatesController
     end
     page_kb
   end
-
 end
