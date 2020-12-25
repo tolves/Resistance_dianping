@@ -136,14 +136,14 @@ class TelegramWebhooksController < BaseController
   #comments
   def show_comments(restaurant, page)
     kb = comments_keyboard restaurant, page
-    comments = "#{restaurant.city.name} - #{restaurant.name}: \n"
-    comments << "#{restaurant.description} \n"
+    comments = "<a href=\"#{restaurant.link}\">#{restaurant.city.name} - #{restaurant.name.html_safe}</a> \n"
+    comments << "#{restaurant.description.html_safe} \n"
     if restaurant.comments.exists?
       restaurant.comments.each { |c| comments << "#{c.commenter}: #{c.body} (#{c.updated_at.to_s}) \n" }
     else
       comments << t(:no_comments)
     end
-    respond_with :message, text: comments, reply_markup: { inline_keyboard: kb }
+    respond_with :message, text: comments, reply_markup: { inline_keyboard: kb }, parse_mode: :HTML
   end
 
   def comments_keyboard(restaurant, page)
