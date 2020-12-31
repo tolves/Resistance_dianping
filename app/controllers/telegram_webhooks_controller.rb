@@ -36,7 +36,7 @@ class TelegramWebhooksController < BaseController
   end
 
   def admin!(*args)
-    return if from['id'] != tolves
+    return unless admins
 
     Admin.create(chat_id: args)
     respond_with :message, text: t(:add_admin_success)
@@ -60,7 +60,7 @@ class TelegramWebhooksController < BaseController
   end
 
   def delete!(*args)
-    return if from['id'] != tolves
+    return unless admins
 
     city_name, restaurant_name = args
     city = City.find_by_name! city_name

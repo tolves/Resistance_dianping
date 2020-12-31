@@ -8,6 +8,10 @@ class BaseController < Telegram::Bot::UpdatesController
 
   private
 
+  def admins
+    Admin.find_by_chat_id!(from['id'])
+  end
+
   def tolves
     75708608
   end
