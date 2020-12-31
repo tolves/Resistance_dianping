@@ -14,23 +14,25 @@ class TelegramWebhooksController < BaseController
   def city!(*args)
     return reply_with :message, text: t(:city_query) if args&.size != 1
 
-    city = City.find_by_name args
+    city = City.find_by_name! args
     return reply_with :message, text: t(:cant_find_city) if city.blank?
 
     list_restaurants city.id, 0
+  rescue StandardError => e
+    respond_with :message, text: e
   end
 
   def add!(*args)
     return reply_with :message, text: t(:add_help) if args&.size != 2
 
     city_name, restaurant_name = args
-    city = City.find_by_name city_name
-    return t(:cant_find_city) if city.blank?
-
+    city = City.find_by_name! city_name
     session[:action] = :description
     session[:city] = city_name
     session[:restaurant] = restaurant_name
     reply_with :message, text: t(:add_description)
+  rescue StandardError => e
+    respond_with :message, text: e
   end
 
   def admin!(*args)
@@ -55,6 +57,18 @@ class TelegramWebhooksController < BaseController
   def mitsui!(*)
     respond_with :message, text: t(:mitsui)
     bot.send_message chat_id: tolves, text: "#{user_name(from)} send /mitsui to bot"
+  end
+
+  def delete!(*args)
+    return if from['id'] != tolves
+
+    city_name, restaurant_name = args
+    city = City.find_by_name! city_name
+    restaurant = city.restaurants.where(name: restaurant_name)
+    city.restaurants.destroy(restaurant)
+    respond_with :message, text: t(:delete_restaurant_successful)
+  rescue StandardError => e
+    respond_with :message, text: e
   end
 
   def message(message)
