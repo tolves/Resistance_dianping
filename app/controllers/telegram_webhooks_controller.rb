@@ -55,7 +55,7 @@ class TelegramWebhooksController < BaseController
   end
 
   def mitsui!(*)
-    respond_with :message, text: t(:mitsui)
+    respond_with :message, text: t(:happy_new_year)
     bot.send_message chat_id: tolves, text: "#{user_name(from)} send /mitsui to bot"
   end
 
