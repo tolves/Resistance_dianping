@@ -18,8 +18,6 @@ class TelegramWebhooksController < BaseController
     return reply_with :message, text: t(:cant_find_city) if city.blank?
 
     list_restaurants city.id, 0
-  rescue StandardError => e
-    respond_with :message, text: e
   end
 
   def add!(*args)
@@ -31,8 +29,6 @@ class TelegramWebhooksController < BaseController
     session[:city] = city_name
     session[:restaurant] = restaurant_name
     reply_with :message, text: t(:add_description)
-  rescue StandardError => e
-    respond_with :message, text: e
   end
 
   def admin!(*args)
@@ -40,8 +36,6 @@ class TelegramWebhooksController < BaseController
 
     Admin.create(chat_id: args)
     respond_with :message, text: t(:add_admin_success)
-  rescue StandardError => e
-    respond_with :message, text: e
   end
 
   def q!(*args)
@@ -64,11 +58,9 @@ class TelegramWebhooksController < BaseController
 
     city_name, restaurant_name = args
     city = City.find_by_name! city_name
-    restaurant = city.restaurants.where(name: restaurant_name)
+    restaurant = city.restaurants.find_by! name: restaurant_name
     city.restaurants.destroy(restaurant)
     respond_with :message, text: t(:delete_restaurant_successful)
-  rescue StandardError => e
-    respond_with :message, text: e
   end
 
   def message(message)
@@ -131,8 +123,6 @@ class TelegramWebhooksController < BaseController
     confirm_new_restaurant restaurant, from
     session[:action] = :dp_link
     session[:restaurant] = restaurant
-  rescue StandardError => e
-    respond_with :message, text: e
   end
 
   #add link of the new restaurant
@@ -143,8 +133,6 @@ class TelegramWebhooksController < BaseController
     restaurant.update(dp_link: text)
     respond_with :message, text: t(:add_restaurant_successful)
     session.destroy
-  rescue StandardError => e
-    respond_with :message, text: e
   end
 
   #comments
@@ -176,8 +164,6 @@ class TelegramWebhooksController < BaseController
     restaurant.comments.create(body: text, commenter: user_name(from))
     show_comments restaurant, session[:page]
     session[:action] = nil
-  rescue StandardError => e
-    respond_with :message, text: e
   end
 
   def list_restaurants(city_id, page = 0)
@@ -205,7 +191,6 @@ class TelegramWebhooksController < BaseController
     session[:restaurants].limit(pg_offset).offset(page * pg_offset).each do |r|
       text << "#{r.name.html_safe}: #{r.description.html_safe}. <a href=\"#{r.link}\">链接</a> \n"
     end
-    puts text
     respond_with :message, text: text, parse_mode: :HTML
   end
 
@@ -232,15 +217,11 @@ class TelegramWebhooksController < BaseController
   def confirmation_pass(restaurant)
     restaurant.update(confirmation: true)
     answer_callback_query t(:pass_new_confirmation)
-  rescue StandardError => e
-    respond_with :message, text: e
   end
 
   def confirmation_reject(restaurant)
     restaurant.destroy!
     answer_callback_query t(:reject_new_confirmation)
-  rescue StandardError => e
-    respond_with :message, text: e
   end
 
 end

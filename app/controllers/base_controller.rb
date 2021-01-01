@@ -1,6 +1,9 @@
 require 'uri'
 class BaseController < Telegram::Bot::UpdatesController
   include Telegram::Bot::UpdatesController::MessageContext
+  rescue_from StandardError do |e|
+    respond_with :message, text: e
+  end
 
   use_session!
 
