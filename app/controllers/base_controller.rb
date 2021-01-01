@@ -17,7 +17,7 @@ class BaseController < Telegram::Bot::UpdatesController
   end
 
   def user_name(user)
-    user['user_name'].blank? ? full_name(user) : "@#{user['user_name']}"
+    user['user_name'].blank? ? full_name(user) : user['user_name']
   end
 
   def full_name(user)
