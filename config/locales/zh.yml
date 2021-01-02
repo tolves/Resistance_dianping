@@ -7,7 +7,7 @@ zh:
   cant_find_city: "找不到该城市，城市名为中文，请检查或联系 @tolves"
   add_description: "请输入简单描述，例如该店特点，推荐菜品等"
   add_restaurant_successful: "成功添加馆子，感谢您为蓝军吃吃吃做出的努力，稍等片刻后该馆子即可显示，如果15分钟后还未显示，请联系 @tolves"
-  city_query: "城市查询为 '/city 城市名'"
+  city_query: "城市查询为 '/list 城市名'"
   link: "链接"
   new_comment: "添加评论"
   no_comments: "该店暂无评论"
