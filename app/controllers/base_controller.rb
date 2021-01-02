@@ -13,8 +13,7 @@ class BaseController < Telegram::Bot::UpdatesController
   module Methods
 
     def admin?
-      admin = Admin.find_by_chat_id!(from['id'])
-      raise t(:you_are_not_an_admin) unless admin
+      !!Admin.find_by_chat_id(from['id'])
     end
 
     def tolves
@@ -39,7 +38,6 @@ class BaseController < Telegram::Bot::UpdatesController
     end
 
     def valid_url?
-      puts payload['text'].match?(%r{^(https?)://[^\s/$.?#].[^\s]*$})
       unless payload['text'].match?(%r{^(https?)://[^\s/$.?#].[^\s]*$})
         save_context :create_link_from_message
         raise t(:url_validation_failed)

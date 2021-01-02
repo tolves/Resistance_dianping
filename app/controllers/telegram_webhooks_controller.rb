@@ -37,25 +37,25 @@ class TelegramWebhooksController < BaseController
     reply_with :message, text: t(:add_description)
   end
 
-  def create_restaurant_from_message(description)
-    session[:restaurant] = Restaurants.create(session[:city], session[:restaurant_name], description, user_name(from))
+  def create_restaurant_from_message(*description)
+    session[:restaurant] = Restaurants.create(session[:city], session[:restaurant_name], description.join(' '), user_name(from))
     save_context :create_link_from_message
     respond_with :message, text: t(:input_dp_link)
-
     # send confirmation request to admins
     confirm_new_restaurant session[:restaurant], from
   end
 
-  def create_link_from_message(link)
+  def create_link_from_message(*link)
     exit?
     valid_url?
-    Restaurants.update(session[:restaurant], link)
+    Restaurants.update(session[:restaurant], link.join(''))
     respond_with :message, text: t(:add_restaurant_successful)
     session.destroy
   end
 
   def admin!(*args)
-    admin?
+    raise t(:you_are_not_an_admin) unless admin?
+
     Managers.create args.first
     respond_with :message, text: t(:add_admin_success)
   end
@@ -98,6 +98,16 @@ class TelegramWebhooksController < BaseController
     r_id, page = data.split(/,/)
   end
 
+  def pass_callback_query(r_id, *)
+    Restaurant.unscoped.find(r_id).update(confirmation: true)
+    answer_callback_query t(:pass_new_confirmation)
+  end
+
+  def reject_callback_query(r_id, *)
+    Restaurant.unscoped.find(r_id).destroy!
+    answer_callback_query t(:reject_new_confirmation)
+  end
+
   def message(message)
     return if session.blank?
 
@@ -117,14 +127,6 @@ class TelegramWebhooksController < BaseController
   #     show_comments restaurant, page
   #   when 'new_comment'
   #     new_comment restaurant, page
-  #   when 'edit_restaurants'
-  #     edit_restaurants page
-  #   when 'list_restaurants'
-  #     list_restaurants data['city_id'], page
-  #   when 'confirmation_pass'
-  #     confirmation_pass restaurant
-  #   when 'confirmation_reject'
-  #     confirmation_reject restaurant
   #   when 'markdown_restaurants'
   #     markdown_restaurants page
   #   end
@@ -174,27 +176,14 @@ class TelegramWebhooksController < BaseController
   end
 
   #admin
+
   def confirm_new_restaurant(restaurant, user)
-    kb = confirmation_keyboard restaurant
     text = "#{user_name(user)} #{t(:submit_new_restaurant)}: \n"
     text << "#{restaurant.city.name}: \n #{restaurant.name}: #{restaurant.description}"
     Admin.all.each do |admin|
-      bot.send_message chat_id: admin.chat_id, text: text, reply_markup: { inline_keyboard: kb, one_time_keyboard: true }
+      bot.send_message chat_id: admin.chat_id, text: text, reply_markup: { inline_keyboard: Managers.keyboard(restaurant) , one_time_keyboard: true }
     end
   end
 
-  def confirmation_keyboard(restaurant)
-    [[{ text: t(:confirmation_pass), callback_data: ActiveSupport::JSON.encode({ action: 'confirmation_pass', restaurant: restaurant.id }) }, { text: t(:confirmation_reject), callback_data: ActiveSupport::JSON.encode({ action: 'confirmation_reject', restaurant: restaurant.id }) }]]
-  end
-
-  def confirmation_pass(restaurant)
-    restaurant.update(confirmation: true)
-    answer_callback_query t(:pass_new_confirmation)
-  end
-
-  def confirmation_reject(restaurant)
-    restaurant.destroy!
-    answer_callback_query t(:reject_new_confirmation)
-  end
 
 end
