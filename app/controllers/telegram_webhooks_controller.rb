@@ -82,9 +82,6 @@ class TelegramWebhooksController < BaseController
     when :create_comment
       create_comment message['text']
     end
-
-  rescue StandardError => e
-    respond_with :message, text: e
   end
 
   def callback_query(data)
@@ -108,8 +105,6 @@ class TelegramWebhooksController < BaseController
     when 'markdown_restaurants'
       markdown_restaurants page
     end
-  rescue StandardError => e
-    respond_with :message, text: e
   end
 
 
