@@ -55,7 +55,7 @@ class TelegramWebhooksController < BaseController
   def q!(*args)
     keywords = args.join('_')
     restaurants = Restaurant.search keywords
-    return respond_with :message, text: t(:cant_find_restaurants) if restaurants.blank?
+    raise t(:cant_find_restaurants) if restaurants.blank?
 
     session[:restaurants] = restaurants
     respond_with :message, text: keywords, reply_markup: { inline_keyboard: Restaurants.keyboard(session[:restaurants], page: 0), resize_keyboard: true }
@@ -109,9 +109,9 @@ class TelegramWebhooksController < BaseController
     respond_with :message, text: t(:create_comment)
   end
 
-  def create_comment_from_message(comments)
+  def create_comment_from_message(*comments)
     restaurant = session[:restaurant]
-    restaurant.comments.create(body: comments, commenter: user_name(from))
+    restaurant.comments.create(body: comments.join(' '), commenter: user_name(from))
     comments = Comments.show restaurant, session[:page]
     respond_with :message, text: comments[:text], reply_markup: { inline_keyboard: comments[:keyboard] }, parse_mode: :HTML
     session[:action] = nil
