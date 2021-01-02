@@ -12,8 +12,6 @@ module Restaurants
 
   def self.keyboard(restaurants, **args)
     page = args[:page].to_i
-    puts args[:page].to_i * pg_offset
-    # puts restaurants.limit(pg_offset).offset(args[:page].to_i * pg_offset)
     kb = restaurants.limit(pg_offset).offset(page * pg_offset).map { |r| [{ text: "#{r.name}: #{r.description}", callback_data: "show_comments:#{r.id},#{page}" }, { text: t(:link), url: r.link }] }
     kb.push pagination(restaurants, page: page, action: 'edit_restaurants')
     kb.push [{text: t(:forwardable), callback_data: "output_restaurants:#{page}"}]
@@ -26,4 +24,13 @@ module Restaurants
   def self.update(restaurant, link)
     restaurant.update(dp_link: link)
   end
+
+  def self.output(restaurant, page)
+    text = "<b>#{t(:list)}</b> \n"
+    restaurant.limit(pg_offset).offset(page.to_i * pg_offset).each do |r|
+      text << "#{r.name.html_safe}: #{r.description.html_safe}. <a href=\"#{r.link}\">链接</a> \n"
+    end
+    text
+  end
+
 end

@@ -87,7 +87,7 @@ class TelegramWebhooksController < BaseController
   end
 
   def list_restaurants_callback_query(city_id, *)
-    session[:restaurants] = Restaurants.list(city_id)
+    session[:restaurants] = Restaurants.list city_id
     respond_with :message, text: t(:recommendation), reply_markup: { inline_keyboard: Restaurants.keyboard(session[:restaurants], page: 0), resize_keyboard: true }
   end
 
@@ -128,29 +128,12 @@ class TelegramWebhooksController < BaseController
     answer_callback_query t(:reject_new_confirmation)
   end
 
-  # def callback_query(data)
-  #   data = JSON.parse data
-  #   page = (data['page'].blank? ? 0 : data['page'])
-  #   restaurant = Restaurant.unscoped.find(data['restaurant']) unless data['restaurant'].blank?
-  #
-  #   case data['action']
-  #   when 'markdown_restaurants'
-  #     markdown_restaurants page
-  #   end
-  # end
-
-
-
-  private
-
-  def markdown_restaurants(page)
-    text = "<b>#{t(:list)}</b> \n"
-    session[:restaurants].limit(pg_offset).offset(page * pg_offset).each do |r|
-      text << "#{r.name.html_safe}: #{r.description.html_safe}. <a href=\"#{r.link}\">链接</a> \n"
-    end
-    respond_with :message, text: text, parse_mode: :HTML
+  def output_restaurants_callback_query(page)
+    output = Restaurants.output(session[:restaurants], page)
+    respond_with :message, text: output, parse_mode: :HTML
   end
 
+  private
   #admin
 
   def confirm_new_restaurant(restaurant, user)
