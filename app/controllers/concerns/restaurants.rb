@@ -33,4 +33,10 @@ module Restaurants
     text
   end
 
+  def self.destroy(city_name, restaurant_name)
+    city = City.find_by_name! city_name
+    restaurant = city.restaurants.find_by! name: restaurant_name
+    city.restaurants.destroy(restaurant)
+  end
+
 end

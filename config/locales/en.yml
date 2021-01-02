@@ -66,4 +66,5 @@ en:
   delete_restaurant_successful: "成功删除馆子"
   happy_new_year: "🎇🎇🎆🎆 Happy New Year~Honey 🎆🎆🎇🎇"
   you_are_not_an_admin: "你不是管理员"
+  restaurant_exists: "同名馆子已存在该城市"
 

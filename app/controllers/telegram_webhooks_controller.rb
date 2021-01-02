@@ -32,6 +32,8 @@ class TelegramWebhooksController < BaseController
     restaurant_name = args.join(' ')
     city = City.find_by_name! city_name
 
+    raise t(:restaurant_exists) if city.restaurants.find_by! name: restaurant_name
+
     save_context :create_restaurant_from_message
     session[:city] = city
     session[:restaurant_name] = restaurant_name
@@ -61,12 +63,10 @@ class TelegramWebhooksController < BaseController
   end
 
   def delete!(*args)
-    return unless admins
+    raise t(:you_are_not_an_admin) unless admin?
 
     city_name, restaurant_name = args
-    city = City.find_by_name! city_name
-    restaurant = city.restaurants.find_by! name: restaurant_name
-    city.restaurants.destroy(restaurant)
+    Restaurants.destroy(city_name, restaurant_name)
     respond_with :message, text: t(:delete_restaurant_successful)
   end
 
