@@ -5,7 +5,7 @@ class TelegramWebhooksController < BaseController
   include Cities
   include Comments
 
-  before_action :session_destroy, only: [:start!, :city!, :add!, :q!]
+  before_action :session_destroy, only: [:start!, :list!, :add!, :q!]
 
   # Commons
   def start!(*)
