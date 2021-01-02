@@ -1,5 +1,5 @@
 class TelegramWebhooksController < BaseController
-  # include BaseController::BaseHelpers
+  include Telegram::Bot::UpdatesController::CallbackQueryContext
   include Methods
   include Managers
   include Cities
@@ -66,6 +66,19 @@ class TelegramWebhooksController < BaseController
     respond_with :message, text: t(:delete_restaurant_successful)
   end
 
+  def list_restaurants_callback_query(city_id, *)
+    session[:restaurants] = Restaurants.list(city_id)
+    respond_with :message, text: t(:recommendation), reply_markup: { inline_keyboard: Restaurants.keyboard(session[:restaurants], page: 0), resize_keyboard: true }
+  end
+
+  def edit_restaurants_callback_query(page)
+    edit_message :text, text: t(:recommendation), reply_markup: { inline_keyboard: Restaurants.keyboard(session[:restaurants], page: page) }
+  end
+
+  def show_comments_callback_query(data, *)
+    r_id, page = data.split(/,/)
+  end
+
   def message(message)
     return if session.blank?
 
@@ -84,28 +97,28 @@ class TelegramWebhooksController < BaseController
     end
   end
 
-  def callback_query(data)
-    data = JSON.parse data
-    page = (data['page'].blank? ? 0 : data['page'])
-    restaurant = Restaurant.unscoped.find(data['restaurant']) unless data['restaurant'].blank?
-
-    case data['action']
-    when 'show_comments'
-      show_comments restaurant, page
-    when 'new_comment'
-      new_comment restaurant, page
-    when 'edit_restaurants'
-      edit_restaurants page
-    when 'list_restaurants'
-      list_restaurants data['city_id'], page
-    when 'confirmation_pass'
-      confirmation_pass restaurant
-    when 'confirmation_reject'
-      confirmation_reject restaurant
-    when 'markdown_restaurants'
-      markdown_restaurants page
-    end
-  end
+  # def callback_query(data)
+  #   data = JSON.parse data
+  #   page = (data['page'].blank? ? 0 : data['page'])
+  #   restaurant = Restaurant.unscoped.find(data['restaurant']) unless data['restaurant'].blank?
+  #
+  #   case data['action']
+  #   when 'show_comments'
+  #     show_comments restaurant, page
+  #   when 'new_comment'
+  #     new_comment restaurant, page
+  #   when 'edit_restaurants'
+  #     edit_restaurants page
+  #   when 'list_restaurants'
+  #     list_restaurants data['city_id'], page
+  #   when 'confirmation_pass'
+  #     confirmation_pass restaurant
+  #   when 'confirmation_reject'
+  #     confirmation_reject restaurant
+  #   when 'markdown_restaurants'
+  #     markdown_restaurants page
+  #   end
+  # end
 
 
 
@@ -162,26 +175,6 @@ class TelegramWebhooksController < BaseController
     restaurant.comments.create(body: text, commenter: user_name(from))
     show_comments restaurant, session[:page]
     session[:action] = nil
-  end
-
-  def list_restaurants(city_id, page = 0)
-    restaurants = City.find(city_id).restaurants
-    return respond_with :message, text: "#{City.find(city_id).name} #{t(:doesnt_has_data)}" if restaurants.blank?
-
-    session[:restaurants] = restaurants
-    kb = restaurants_keyboard(page)
-    respond_with :message, text: t(:recommendation), reply_markup: { inline_keyboard: kb, resize_keyboard: true }
-  end
-
-  def edit_restaurants(page = 0)
-    kb = restaurants_keyboard(page)
-    edit_message :text, text: t(:recommendation), reply_markup: { inline_keyboard: kb }
-  end
-
-  def restaurants_keyboard(page)
-    kb = session[:restaurants].limit(pg_offset).offset(page * pg_offset).map { |r| [{ text: "#{r.name}: #{r.description}", callback_data: ActiveSupport::JSON.encode({ action: 'show_comments', restaurant: r.id, page: page}) }, { text: t(:link), url: r.link }] }
-    kb.push pagination(session[:restaurants], page: page, action: 'edit_restaurants')
-    kb.push [{text: t(:forwardable), callback_data: ActiveSupport::JSON.encode({ action: 'markdown_restaurants', page: page})}]
   end
 
   def markdown_restaurants(page)
