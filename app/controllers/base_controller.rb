@@ -49,13 +49,13 @@ class BaseController < Telegram::Bot::UpdatesController
       false
     end
 
-    def pagination(resource, *args)
+    def pagination(resource, **args)
       page_kb = []
 
-      (1 .. (resource.size / pg_offset) + 1).each do |p|
-        next if p == (args[0][:page] + 1)
+      (1 .. ((resource.size - 1) / pg_offset) + 1).each do |p|
+        next if p == (args[:page] + 1)
 
-        page_kb.push({ text: p, callback_data: ActiveSupport::JSON.encode({ action: args[0][:action], page: (p - 1) }) })
+        page_kb.push({ text: p, callback_data: "#{args[:action]}:#{(p - 1)}" })
       end
       page_kb
     end
