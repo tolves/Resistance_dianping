@@ -1,4 +1,7 @@
 class TelegramWebhooksController < BaseController
+  # include BaseController::BaseHelpers
+  include Managers
+  include Methods
   before_action :session_destroy, only: [:start!, :city!, :add!, :q!]
 
   # Commons
@@ -32,9 +35,8 @@ class TelegramWebhooksController < BaseController
   end
 
   def admin!(*args)
-    return unless admins
-
-    Admin.create(chat_id: args)
+    admin?
+    Managers::create args.first
     respond_with :message, text: t(:add_admin_success)
   end
 
