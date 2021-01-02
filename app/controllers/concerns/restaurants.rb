@@ -18,4 +18,12 @@ module Restaurants
     kb.push pagination(restaurants, page: page, action: 'edit_restaurants')
     kb.push [{text: t(:forwardable), callback_data: "output_restaurants:#{page}"}]
   end
+
+  def self.create(city, name, description, author)
+    city.restaurants.create(name: name, description: description, author: author, confirmation: false)
+  end
+
+  def self.update(restaurant, link)
+    restaurant.update(dp_link: link)
+  end
 end

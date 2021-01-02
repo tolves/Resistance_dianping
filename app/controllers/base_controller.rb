@@ -1,5 +1,3 @@
-require 'uri'
-
 class BaseController < Telegram::Bot::UpdatesController
   include Telegram::Bot::UpdatesController::MessageContext
 
@@ -10,7 +8,6 @@ class BaseController < Telegram::Bot::UpdatesController
   use_session!
 
   I18n.locale = :zh
-
 
 
   module Methods
@@ -41,23 +38,28 @@ class BaseController < Telegram::Bot::UpdatesController
       puts "#{from['id']}: session has been cleaned"
     end
 
-    def valid_url?(url)
-      uri = URI.parse(url)
-      puts url.match(%r{^(https?)://[^\s/$.?#].[^\s]*$})
-      uri.is_a?(URI::HTTP) && !uri.host.nil? && url.match(%r{^(https?)://[^\s/$.?#].[^\s]*$})
-    rescue URI::InvalidURIError
-      false
+    def valid_url?
+      puts payload['text'].match?(%r{^(https?)://[^\s/$.?#].[^\s]*$})
+      unless payload['text'].match?(%r{^(https?)://[^\s/$.?#].[^\s]*$})
+        save_context :create_link_from_message
+        raise t(:url_validation_failed)
+      end
     end
 
     def pagination(resource, **args)
       page_kb = []
-
       (1 .. ((resource.size - 1) / pg_offset) + 1).each do |p|
         next if p == (args[:page] + 1)
-
         page_kb.push({ text: p, callback_data: "#{args[:action]}:#{(p - 1)}" })
       end
       page_kb
+    end
+
+    def exit?
+      return unless payload['text'] == 'exit'
+
+      session_destroy
+      raise t(:exit)
     end
   end
 
