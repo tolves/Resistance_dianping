@@ -3,6 +3,7 @@ class TelegramWebhooksController < BaseController
   include Methods
   include Managers
   include Cities
+  include Comments
 
   before_action :session_destroy, only: [:start!, :city!, :add!, :q!]
 
@@ -37,6 +38,38 @@ class TelegramWebhooksController < BaseController
     reply_with :message, text: t(:add_description)
   end
 
+  def admin!(*args)
+    raise t(:you_are_not_an_admin) unless admin?
+
+    Managers.create args.first
+    respond_with :message, text: t(:add_admin_success)
+  end
+
+  def mitsui!(*)
+    respond_with :message, text: t(:happy_new_year)
+    bot.send_message chat_id: tolves, text: "#{from.inspect} send /mitsui to bot"
+  end
+
+  def q!(*args)
+    keywords = args.join('_')
+    restaurants = Restaurant.search keywords
+    return respond_with :message, text: t(:cant_find_restaurants) if restaurants.blank?
+
+    session[:restaurants] = restaurants
+    kb = restaurants_keyboard 0
+    respond_with :message, text: keywords, reply_markup: { inline_keyboard: kb, resize_keyboard: true }
+  end
+
+  def delete!(*args)
+    return unless admins
+
+    city_name, restaurant_name = args
+    city = City.find_by_name! city_name
+    restaurant = city.restaurants.find_by! name: restaurant_name
+    city.restaurants.destroy(restaurant)
+    respond_with :message, text: t(:delete_restaurant_successful)
+  end
+
   def create_restaurant_from_message(*description)
     session[:restaurant] = Restaurants.create(session[:city], session[:restaurant_name], description.join(' '), user_name(from))
     save_context :create_link_from_message
@@ -53,38 +86,6 @@ class TelegramWebhooksController < BaseController
     session.destroy
   end
 
-  def admin!(*args)
-    raise t(:you_are_not_an_admin) unless admin?
-
-    Managers.create args.first
-    respond_with :message, text: t(:add_admin_success)
-  end
-
-  def q!(*args)
-    keywords = args.join('_')
-    restaurants = Restaurant.search keywords
-    return respond_with :message, text: t(:cant_find_restaurants) if restaurants.blank?
-
-    session[:restaurants] = restaurants
-    kb = restaurants_keyboard 0
-    respond_with :message, text: keywords, reply_markup: { inline_keyboard: kb, resize_keyboard: true }
-  end
-
-  def mitsui!(*)
-    respond_with :message, text: t(:happy_new_year)
-    bot.send_message chat_id: tolves, text: "#{from.inspect} send /mitsui to bot"
-  end
-
-  def delete!(*args)
-    return unless admins
-
-    city_name, restaurant_name = args
-    city = City.find_by_name! city_name
-    restaurant = city.restaurants.find_by! name: restaurant_name
-    city.restaurants.destroy(restaurant)
-    respond_with :message, text: t(:delete_restaurant_successful)
-  end
-
   def list_restaurants_callback_query(city_id, *)
     session[:restaurants] = Restaurants.list(city_id)
     respond_with :message, text: t(:recommendation), reply_markup: { inline_keyboard: Restaurants.keyboard(session[:restaurants], page: 0), resize_keyboard: true }
@@ -96,6 +97,25 @@ class TelegramWebhooksController < BaseController
 
   def show_comments_callback_query(data, *)
     r_id, page = data.split(/,/)
+    restaurant = Restaurant.find(r_id)
+    comments = Comments.show restaurant, page
+    edit_message :text, text: comments[:text], reply_markup: { inline_keyboard: comments[:keyboard] }, parse_mode: :HTML
+  end
+
+  def new_comment_callback_query(data, *)
+    r_id, page = data.split(/,/)
+    save_context :create_comment_from_message
+    session[:restaurant] = Restaurant.find(r_id)
+    session[:page] = page
+    respond_with :message, text: t(:create_comment)
+  end
+
+  def create_comment_from_message(comments)
+    restaurant = session[:restaurant]
+    restaurant.comments.create(body: comments, commenter: user_name(from))
+    comments = Comments.show restaurant, session[:page]
+    respond_with :message, text: comments[:text], reply_markup: { inline_keyboard: comments[:keyboard] }, parse_mode: :HTML
+    session[:action] = nil
   end
 
   def pass_callback_query(r_id, *)
@@ -108,25 +128,12 @@ class TelegramWebhooksController < BaseController
     answer_callback_query t(:reject_new_confirmation)
   end
 
-  def message(message)
-    return if session.blank?
-
-    case session[:action]
-    when :create_comment
-      create_comment message['text']
-    end
-  end
-
   # def callback_query(data)
   #   data = JSON.parse data
   #   page = (data['page'].blank? ? 0 : data['page'])
   #   restaurant = Restaurant.unscoped.find(data['restaurant']) unless data['restaurant'].blank?
   #
   #   case data['action']
-  #   when 'show_comments'
-  #     show_comments restaurant, page
-  #   when 'new_comment'
-  #     new_comment restaurant, page
   #   when 'markdown_restaurants'
   #     markdown_restaurants page
   #   end
@@ -135,37 +142,6 @@ class TelegramWebhooksController < BaseController
 
 
   private
-
-  #comments
-  def show_comments(restaurant, page)
-    kb = comments_keyboard restaurant, page
-    comments = "<a href=\"#{restaurant.link}\">#{restaurant.city.name} - #{restaurant.name.html_safe}</a> \n"
-    comments << "#{restaurant.description.html_safe} \n"
-    if restaurant.comments.exists?
-      restaurant.comments.each { |c| comments << "#{c.commenter}: #{c.body} (#{c.updated_at.to_s}) \n" }
-    else
-      comments << t(:no_comments)
-    end
-    respond_with :message, text: comments, reply_markup: { inline_keyboard: kb }, parse_mode: :HTML
-  end
-
-  def comments_keyboard(restaurant, page)
-    [[{ text: t(:new_comment), callback_data: ActiveSupport::JSON.encode({ action: 'new_comment', restaurant: restaurant.id, page: page }) }, { text: t(:back_restaurants), callback_data: ActiveSupport::JSON.encode({ action: 'edit_restaurants', page: page }) }]]
-  end
-
-  def new_comment(restaurant, page)
-    session[:action] = :create_comment
-    session[:restaurant] = restaurant
-    session[:page] = page
-    respond_with :message, text: t(:create_comment)
-  end
-
-  def create_comment(text)
-    restaurant = session[:restaurant]
-    restaurant.comments.create(body: text, commenter: user_name(from))
-    show_comments restaurant, session[:page]
-    session[:action] = nil
-  end
 
   def markdown_restaurants(page)
     text = "<b>#{t(:list)}</b> \n"
