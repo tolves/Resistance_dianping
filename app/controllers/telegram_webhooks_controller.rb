@@ -58,8 +58,7 @@ class TelegramWebhooksController < BaseController
     return respond_with :message, text: t(:cant_find_restaurants) if restaurants.blank?
 
     session[:restaurants] = restaurants
-    kb = restaurants_keyboard 0
-    respond_with :message, text: keywords, reply_markup: { inline_keyboard: kb, resize_keyboard: true }
+    respond_with :message, text: keywords, reply_markup: { inline_keyboard: Restaurants.keyboard(session[:restaurants], page: 0), resize_keyboard: true }
   end
 
   def delete!(*args)
