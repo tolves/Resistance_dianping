@@ -21,7 +21,7 @@ zh:
   reject_new_confirmation: "已删除该馆子"
   submit_new_restaurant: "提交新馆子"
   add_admin_success: "成功添加管理员"
-  availible_cities: "当前有数据的城市如下，欢迎大家踊跃添加当地美食："
+  available_cities: "当前有数据的城市如下，欢迎大家踊跃添加当地美食："
   recommendation: "美食推荐:"
   pre_page: "上一页"
   next_page: "下一页"

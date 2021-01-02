@@ -1,13 +1,14 @@
 class TelegramWebhooksController < BaseController
   # include BaseController::BaseHelpers
-  include Managers
   include Methods
+  include Managers
+  include Cities
+
   before_action :session_destroy, only: [:start!, :city!, :add!, :q!]
 
   # Commons
   def start!(*)
-    kb = city_keyboard
-    respond_with :message, text: t(:availible_cities), reply_markup: { inline_keyboard: kb }
+    respond_with :message, text: t(:available_cities), reply_markup: { inline_keyboard: Cities.keyboard }
   end
 
   def help!(*)
@@ -36,7 +37,7 @@ class TelegramWebhooksController < BaseController
 
   def admin!(*args)
     admin?
-    Managers::create args.first
+    Managers.create args.first
     respond_with :message, text: t(:add_admin_success)
   end
 
@@ -196,11 +197,6 @@ class TelegramWebhooksController < BaseController
     respond_with :message, text: text, parse_mode: :HTML
   end
 
-  def city_keyboard
-    city_ids = Restaurant.select(:city_id).group(:city_id)
-    available = city_ids.map {|c| { text: c.city.name, callback_data: ActiveSupport::JSON.encode({ action: 'list_restaurants', city_id: c.city_id}) }}
-    available.in_groups_of(6, false)
-  end
 
   #admin
   def confirm_new_restaurant(restaurant, user)
