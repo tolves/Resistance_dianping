@@ -15,13 +15,14 @@ class TelegramWebhooksController < BaseController
     respond_with :message, text: t(:help), parse_mode: :MarkdownV2
   end
 
-  def city!(*args)
-    return reply_with :message, text: t(:city_query) if args&.size != 1
+  def list!(*args)
+    raise t(:city_query) if args&.size != 1
 
     city = City.find_by_name! args
-    return reply_with :message, text: t(:cant_find_city) if city.blank?
+    raise t(:cant_find_city) if city.blank?
 
-    list_restaurants city.id, 0
+    session[:restaurants] = Restaurants.list(city.id)
+    respond_with :message, text: t(:recommendation), reply_markup: { inline_keyboard: Restaurants.keyboard(session[:restaurants], page: 0), resize_keyboard: true }
   end
 
   def add!(*args)
