@@ -36,6 +36,7 @@ group :development do
   gem 'pry'
   gem 'pry-rails'
   gem 'web-console', '>= 3.3.0'
+  gem 'redis'
 end
 
 group :production do

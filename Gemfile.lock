@@ -205,6 +205,7 @@ DEPENDENCIES
   pry-rails
   puma (~> 4.1)
   rails (~> 6.0.3, >= 6.0.3.4)
+  redis
   redis-rails
   rspec-its
   rspec-rails

@@ -1,5 +1,5 @@
 class Restaurant < ApplicationRecord
-  belongs_to :city
+  belongs_to :city, touch: true
   has_many :comments, dependent: :destroy
 
   default_scope { where(confirmation: true) }
