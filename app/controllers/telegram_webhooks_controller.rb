@@ -70,20 +70,6 @@ class TelegramWebhooksController < BaseController
     respond_with :message, text: t(:delete_restaurant_successful)
   end
 
-  def delete_city!(*)
-    City.destroy(669)
-    City.destroy(670)
-    City.destroy(671)
-    City.destroy(672)
-    City.destroy(673)
-    City.destroy(674)
-    City.destroy(675)
-    City.destroy(676)
-    City.destroy(677)
-    respond_with :message, text: 'delete taiwan successful'
-
-  end
-
   def i!(*)
     session[:restaurants] = Restaurant.posts(from['id'])
     respond_with :message, text: t(:my_posts), reply_markup: { inline_keyboard: Restaurants.i(session[:restaurants], page: 0), resize_keyboard: true }
