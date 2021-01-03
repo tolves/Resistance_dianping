@@ -5,7 +5,8 @@ class TelegramWebhooksController < BaseController
   include Cities
   include Comments
 
-  before_action :session_destroy, only: [:start!, :list!, :add!, :q!]
+  before_action :session_destroy, only: [:start!, :list!, :city!, :add!, :new!, :q!, :i!]
+  after_action :session_destroy, onlu: [:create_link_from_message]
 
   # Commons
   def start!(*)
@@ -69,6 +70,11 @@ class TelegramWebhooksController < BaseController
     respond_with :message, text: t(:delete_restaurant_successful)
   end
 
+  def i!(*)
+    session[:restaurants] = Restaurant.posts(from['id'])
+    respond_with :message, text: t(:my_posts), reply_markup: { inline_keyboard: Restaurants.i(session[:restaurants], page: 0), resize_keyboard: true }
+  end
+
   def create_restaurant_from_message(*description)
     session[:restaurant] = Restaurants.create(session[:city], session[:restaurant_name], description.join(' '), user_name(from), from['id'])
     save_context :create_link_from_message
@@ -82,7 +88,6 @@ class TelegramWebhooksController < BaseController
     valid_url?
     Restaurants.update(session[:restaurant], link.join(''))
     respond_with :message, text: t(:add_restaurant_successful)
-    session.destroy
   end
 
   def list_restaurants_callback_query(city_id, *)
@@ -114,7 +119,9 @@ class TelegramWebhooksController < BaseController
     restaurant.comments.create(body: comments.join(' '), commenter: user_name(from))
     comments = Comments.show restaurant, session[:page]
     respond_with :message, text: comments[:text], reply_markup: { inline_keyboard: comments[:keyboard] }, parse_mode: :HTML
-    session[:action] = nil
+    if restaurant.author_id
+      bot.send_message chat_id: restaurant.author_id, text: "#{user_name(from)} #{t(:add_new_comment)}: #{restaurant.name}"
+    end
   end
 
   def pass_callback_query(r_id, *)
@@ -132,17 +139,29 @@ class TelegramWebhooksController < BaseController
     respond_with :message, text: output, parse_mode: :HTML
   end
 
+  def delete_i_callback_query(data, *)
+    r_id, page = data.split(/,/)
+    Restaurant.find(r_id).destroy
+    answer_callback_query t(:reject_new_confirmation)
+    edit_i_callback_query(page)
+  end
+
+  def edit_i_callback_query(page)
+    edit_message :text, text: t(:my_posts), reply_markup: { inline_keyboard: Restaurants.i(session[:restaurants], page: page) }
+  end
+
   private
   #admin
 
   def confirm_new_restaurant(restaurant, user)
     text = "#{user_name(user)} #{t(:submit_new_restaurant)}: \n"
-    text << "#{restaurant.city.name}: \n #{restaurant.name}: #{restaurant.description}"
+    text << "#{restaurant.city.name}: \n#{restaurant.name}: #{restaurant.description}"
     Admin.all.each do |admin|
       bot.send_message chat_id: admin.chat_id, text: text, reply_markup: { inline_keyboard: Managers.keyboard(restaurant) , one_time_keyboard: true }
     end
   end
 
   alias city! list!
+  alias new! add!
 
 end

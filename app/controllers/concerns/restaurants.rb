@@ -17,6 +17,12 @@ module Restaurants
     kb.push [{text: t(:forwardable), callback_data: "output_restaurants:#{page}"}]
   end
 
+  def self.i(restaurants, **args)
+    page = args[:page].to_i
+    kb = restaurants.limit(pg_offset).offset(page * pg_offset).map { |r| [{ text: "#{r.city.name}: #{r.name}", callback_data: 'blank' }, { text: t(:delete), callback_data: "delete_i:#{r.id},#{page}" }] }
+    kb.push pagination(restaurants, page: page, action: 'edit_i')
+  end
+
   def self.create(city, name, description, author, author_id)
     city.restaurants.create(name: name, description: description, author: author, author_id: author_id, confirmation: false)
   end
