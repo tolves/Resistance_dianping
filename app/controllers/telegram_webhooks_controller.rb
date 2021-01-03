@@ -143,5 +143,6 @@ class TelegramWebhooksController < BaseController
     end
   end
 
+  alias city! list!
 
 end
