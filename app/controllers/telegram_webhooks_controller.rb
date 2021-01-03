@@ -29,9 +29,10 @@ class TelegramWebhooksController < BaseController
     respond_with :message, text: t(:recommendation), reply_markup: { inline_keyboard: Restaurants.keyboard(session[:restaurants], page: 0), resize_keyboard: true }
   end
 
-  def add!(city_name, *args)
-    raise t(:add_help) if args.blank?
+  def add!(*args)
+    raise t(:add_help) if args.size < 2
 
+    city_name = args.shift
     restaurant_name = args.join(' ')
     city = City.find_by_name! city_name
 
