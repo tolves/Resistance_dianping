@@ -24,6 +24,8 @@ class TelegramWebhooksController < BaseController
     raise t(:cant_find_city) if city.blank?
 
     session[:restaurants] = Restaurants.list(city.id)
+    raise "#{city.name} #{t(:doesnt_has_data)}" if session[:restaurants].blank?
+
     respond_with :message, text: t(:recommendation), reply_markup: { inline_keyboard: Restaurants.keyboard(session[:restaurants], page: 0), resize_keyboard: true }
   end
 

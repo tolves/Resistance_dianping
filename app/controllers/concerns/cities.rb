@@ -2,7 +2,7 @@ module Cities
   extend ActiveSupport::Concern
   def self.keyboard
     city_ids = Restaurant.select(:city_id).group(:city_id)
-    available = Rails.cache.fetch("#{city_ids.cache_key_with_version}/cities") do
+    available = Rails.cache.fetch("#{city_ids.cache_key_with_version}/#{city_ids.length}") do
       puts 'update caches'
       city_ids.map {|c| { text: c.city.name, callback_data: "list_restaurants:#{c.city_id}" }}
     end
