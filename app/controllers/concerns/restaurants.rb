@@ -17,8 +17,8 @@ module Restaurants
     kb.push [{text: t(:forwardable), callback_data: "output_restaurants:#{page}"}]
   end
 
-  def self.create(city, name, description, author)
-    city.restaurants.create(name: name, description: description, author: author, confirmation: false)
+  def self.create(city, name, description, author, author_id)
+    city.restaurants.create(name: name, description: description, author: author, author_id: author_id, confirmation: false)
   end
 
   def self.update(restaurant, link)

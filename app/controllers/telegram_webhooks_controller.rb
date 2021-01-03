@@ -70,7 +70,7 @@ class TelegramWebhooksController < BaseController
   end
 
   def create_restaurant_from_message(*description)
-    session[:restaurant] = Restaurants.create(session[:city], session[:restaurant_name], description.join(' '), user_name(from))
+    session[:restaurant] = Restaurants.create(session[:city], session[:restaurant_name], description.join(' '), user_name(from), from['id'])
     save_context :create_link_from_message
     respond_with :message, text: t(:input_dp_link)
     # send confirmation request to admins

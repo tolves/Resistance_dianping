@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2020_12_23_144341) do
+ActiveRecord::Schema.define(version: 2021_01_03_071201) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -47,6 +47,7 @@ ActiveRecord::Schema.define(version: 2020_12_23_144341) do
     t.string "res_choice"
     t.string "author"
     t.boolean "confirmation", default: false
+    t.integer "author_id"
     t.index "to_tsvector('english'::regconfig, (((name)::text || ' '::text) || description))", name: "restaurants_idx", using: :gin
     t.index ["city_id"], name: "index_restaurants_on_city_id"
   end
