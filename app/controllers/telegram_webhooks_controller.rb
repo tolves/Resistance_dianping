@@ -32,7 +32,7 @@ class TelegramWebhooksController < BaseController
     restaurant_name = args.join(' ')
     city = City.find_by_name! city_name
 
-    raise t(:restaurant_exists) if city.restaurants.find_by! name: restaurant_name
+    raise t(:restaurant_exists) if city.restaurants.find_by name: restaurant_name
 
     save_context :create_restaurant_from_message
     session[:city] = city
