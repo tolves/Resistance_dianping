@@ -12,14 +12,14 @@ module Restaurants
 
   def self.keyboard(restaurants, **args)
     page = args[:page].to_i
-    kb = restaurants.limit(pg_offset).offset(page * pg_offset).map { |r| [{ text: "#{r.name}: #{r.description}", callback_data: "show_comments:#{r.id},#{page}" }, { text: t(:link), url: r.link }] }
+    kb = restaurants.limit(pg_offset).offset(page * pg_offset).map { |r| [{ text: "#{r.name}: #{r.description}", callback_data: "show_comments:#{r.id},#{page},edit_restaurants" }, { text: t(:link), url: r.link }] }
     kb.push pagination(restaurants, page: page, action: 'edit_restaurants')
     kb.push [{text: t(:forwardable), callback_data: "output_restaurants:#{page}"}]
   end
 
   def self.i(restaurants, **args)
     page = args[:page].to_i
-    kb = restaurants.limit(pg_offset).offset(page * pg_offset).map { |r| [{ text: "#{r.city.name}: #{r.name}", callback_data: 'blank' }, { text: t(:delete), callback_data: "delete_i:#{r.id},#{page}" }] }
+    kb = restaurants.limit(pg_offset).offset(page * pg_offset).map { |r| [{ text: "#{r.city.name}: #{r.name}", callback_data: "show_comments:#{r.id},#{page},edit_i" }, { text: t(:delete), callback_data: "delete_i:#{r.id},#{page}" }] }
     kb.push pagination(restaurants, page: page, action: 'edit_i')
   end
 

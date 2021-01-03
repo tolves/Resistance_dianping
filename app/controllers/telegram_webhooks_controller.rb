@@ -6,7 +6,7 @@ class TelegramWebhooksController < BaseController
   include Comments
 
   before_action :session_destroy, only: [:start!, :list!, :city!, :add!, :new!, :q!, :i!]
-  after_action :session_destroy, onlu: [:create_link_from_message]
+  after_action :session_destroy, only: [:create_link_from_message]
 
   # Commons
   def start!(*)
@@ -100,28 +100,32 @@ class TelegramWebhooksController < BaseController
   end
 
   def show_comments_callback_query(data, *)
-    r_id, page = data.split(/,/)
+    r_id, page, action = data.split(/,/)
     restaurant = Restaurant.find(r_id)
-    comments = Comments.show restaurant, page
+    comments = Comments.show restaurant, page, action
     edit_message :text, text: comments[:text], reply_markup: { inline_keyboard: comments[:keyboard] }, parse_mode: :HTML
   end
 
   def new_comment_callback_query(data, *)
-    r_id, page = data.split(/,/)
+    r_id, page, action = data.split(/,/)
     save_context :create_comment_from_message
     session[:restaurant] = Restaurant.find(r_id)
     session[:page] = page
+    session[:action] = action
     respond_with :message, text: t(:create_comment)
   end
 
   def create_comment_from_message(*comments)
     restaurant = session[:restaurant]
-    restaurant.comments.create(body: comments.join(' '), commenter: user_name(from))
-    comments = Comments.show restaurant, session[:page]
+    comment = comments.join(' ')
+    restaurant.comments.create(body: comment, commenter: user_name(from))
+    comments = Comments.show restaurant, session[:page], session[:action]
     respond_with :message, text: comments[:text], reply_markup: { inline_keyboard: comments[:keyboard] }, parse_mode: :HTML
-    if restaurant.author_id
-      bot.send_message chat_id: restaurant.author_id, text: "#{user_name(from)} #{t(:add_new_comment)}: #{restaurant.name}"
+    if restaurant.author_id && restaurant.author_id != from['id']
+      text = "#{user_name(from)} #{t(:add_new_comment)} #{restaurant.name}:\n#{comment}"
+      bot.send_message chat_id: restaurant.author_id, text: text
     end
+    session[:action] = nil
   end
 
   def pass_callback_query(r_id, *)
