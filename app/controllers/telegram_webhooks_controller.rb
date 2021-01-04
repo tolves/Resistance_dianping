@@ -44,6 +44,28 @@ class TelegramWebhooksController < BaseController
     reply_with :message, text: t(:add_description)
   end
 
+  def q!(*args)
+    keywords = args.join('_')
+    restaurants = Restaurant.search keywords
+    raise t(:cant_find_restaurants) if restaurants.blank?
+
+    session[:restaurants] = restaurants
+    respond_with :message, text: keywords, reply_markup: { inline_keyboard: Restaurants.keyboard(session[:restaurants], page: 0), resize_keyboard: true }
+  end
+
+  def i!(*)
+    session[:restaurants] = Restaurant.posts(from['id'])
+    respond_with :message, text: t(:my_posts), reply_markup: { inline_keyboard: Restaurants.i(session[:restaurants], page: 0), resize_keyboard: true }
+  end
+
+  def delete!(*args)
+    raise t(:you_are_not_an_admin) unless admin?
+
+    city_name, restaurant_name = args
+    Restaurants.destroy(city_name, restaurant_name)
+    respond_with :message, text: t(:delete_restaurant_successful)
+  end
+
   def admin!(*args)
     raise t(:you_are_not_an_admin) unless admin?
 
@@ -56,26 +78,19 @@ class TelegramWebhooksController < BaseController
     bot.send_message chat_id: tolves, text: "#{from.inspect} send /mitsui to bot"
   end
 
-  def q!(*args)
-    keywords = args.join('_')
-    restaurants = Restaurant.search keywords
-    raise t(:cant_find_restaurants) if restaurants.blank?
-
-    session[:restaurants] = restaurants
-    respond_with :message, text: keywords, reply_markup: { inline_keyboard: Restaurants.keyboard(session[:restaurants], page: 0), resize_keyboard: true }
-  end
-
-  def delete!(*args)
+  def exec_city!(*args)
     raise t(:you_are_not_an_admin) unless admin?
 
-    city_name, restaurant_name = args
-    Restaurants.destroy(city_name, restaurant_name)
-    respond_with :message, text: t(:delete_restaurant_successful)
+    res = City.find_or_create_by!(name: args[0], province: args[1])
+    respond_with :message, text: res.inspect
   end
 
-  def i!(*)
-    session[:restaurants] = Restaurant.posts(from['id'])
-    respond_with :message, text: t(:my_posts), reply_markup: { inline_keyboard: Restaurants.i(session[:restaurants], page: 0), resize_keyboard: true }
+  def exec!(city, restaurant, link, *description)
+    raise t(:you_are_not_an_admin) unless admin?
+
+    city = City.find_by_name city
+    res = city.restaurants.create(name: restaurant, description: description.join(' '), dp_link: link)
+    respond_with :message, text: res.inspect
   end
 
   def create_restaurant_from_message(*description)
