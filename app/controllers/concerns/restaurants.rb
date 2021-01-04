@@ -28,14 +28,6 @@ module Restaurants
     kb.push pagination(restaurants, page: page, action: 'edit_i')
   end
 
-  def self.create(city, name, description, author, author_id)
-    city.restaurants.create(name: name, description: description, author: author, author_id: author_id, confirmation: false)
-  end
-
-  def self.update(restaurant, link)
-    restaurant.update(dp_link: link)
-  end
-
   def self.output(restaurant, page)
     text = "<b>#{t(:list)}</b> \n"
     restaurant.limit(pg_offset).offset(page.to_i * pg_offset).each do |r|
