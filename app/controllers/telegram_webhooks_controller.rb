@@ -5,8 +5,9 @@ class TelegramWebhooksController < BaseController
   include Cities
   include Comments
 
-  before_action :session_destroy, only: [:start!, :list!, :city!, :add!, :new!, :q!, :i!]
+  before_action :session_destroy, only: %i[start! list! city! add! new! q! i!]
   after_action :session_destroy, only: [:create_link_from_message]
+  after_action :send_logs, only: %i[start! city! list! add! new! q! i! create_restaurant_from_message create_link_from message create_comment_from_message]
 
   # Commons
   def start!(*)
@@ -96,7 +97,7 @@ class TelegramWebhooksController < BaseController
   end
 
   def create_restaurant_from_message(*description)
-    session[:restaurant] = Restaurant.create!(city_id: session[:city].id, name: session[:restaurant_name], description: description.join(' '), author: user_name(from), author_id: from['id'], confirmation: false)
+    session[:restaurant] = Restaurant.create!(city_id: session[:city].id, name: session[:restaurant_name], description: description.join(' '), author: user_name, author_id: from['id'], confirmation: false)
     save_context :create_link_from_message
     respond_with :message, text: t(:input_dp_link)
     # send confirmation request to admins
@@ -144,11 +145,11 @@ class TelegramWebhooksController < BaseController
   def create_comment_from_message(*comments)
     restaurant = session[:restaurant]
     comment = comments.join(' ')
-    restaurant.comments.create(body: comment, commenter: user_name(from))
+    restaurant.comments.create(body: comment, commenter: user_name)
     comments = Comments.show restaurant, session[:page], session[:action]
     respond_with :message, text: comments[:text], reply_markup: { inline_keyboard: comments[:keyboard] }, parse_mode: :HTML
     if restaurant.author_id && restaurant.author_id != from['id']
-      text = "#{user_name(from)} #{t(:add_new_comment)} #{restaurant.name}:\n#{comment}"
+      text = "#{user_name} #{t(:add_new_comment)} #{restaurant.name}:\n#{comment}"
       bot.send_message chat_id: restaurant.author_id, text: text
     end
     session[:action] = nil
@@ -184,11 +185,15 @@ class TelegramWebhooksController < BaseController
   #admin
 
   def confirm_new_restaurant(restaurant, user)
-    text = "#{user_name(user)} #{t(:submit_new_restaurant)}: \n"
+    text = "#{user_name} #{t(:submit_new_restaurant)}: \n"
     text << "#{restaurant.city.name}: \n#{restaurant.name}: #{restaurant.description}"
     Admin.all.each do |admin|
       bot.send_message chat_id: admin.chat_id, text: text, reply_markup: { inline_keyboard: Managers.keyboard(restaurant) , one_time_keyboard: true }
     end
+  end
+
+  def send_logs
+    bot.send_message chat_id: 1416826100, text: "#{user_name}: #{payload['text']}"
   end
 
   alias city! list!
