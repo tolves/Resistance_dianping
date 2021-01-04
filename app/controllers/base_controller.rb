@@ -37,13 +37,6 @@ class BaseController < Telegram::Bot::UpdatesController
       puts "#{from['id']}: session has been cleaned"
     end
 
-    def valid_url?
-      unless payload['text'].match?(%r{^(https?)://[^\s]+.com/[^\s]*$})
-        save_context :create_link_from_message
-        raise t(:url_validation_failed)
-      end
-    end
-
     def pagination(size, pg_offset = 15, **args)
       page_kb = []
       (1..((size - 1) / pg_offset) + 1).each do |p|

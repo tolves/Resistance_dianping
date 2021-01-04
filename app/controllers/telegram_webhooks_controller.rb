@@ -21,12 +21,12 @@ class TelegramWebhooksController < BaseController
     raise t(:city_query) if args&.size != 1
 
     city = City.find_by_name! args
-    raise t(:cant_find_city) if city.blank?
-
     session[:restaurants] = Restaurants.list(city.id)
-    raise "#{city.name} #{t(:doesnt_has_data)}" if session[:restaurants].blank?
+    raise "#{city.name} #{t(:did_not_have_data)}" if session[:restaurants].blank?
 
     respond_with :message, text: t(:recommendation), reply_markup: { inline_keyboard: Restaurants.keyboard(session[:restaurants], page: 0), resize_keyboard: true }
+  rescue ActiveRecord::RecordNotFound
+    raise t(:could_not_find_city)
   end
 
   def add!(*args)
@@ -36,12 +36,14 @@ class TelegramWebhooksController < BaseController
     restaurant_name = args.join(' ')
     city = City.find_by_name! city_name
 
-    raise t(:restaurant_exists) if city.restaurants.find_by name: restaurant_name
+    raise t(:restaurant_exists) if city.restaurants.exists? name: restaurant_name
 
     save_context :create_restaurant_from_message
     session[:city] = city
     session[:restaurant_name] = restaurant_name
     reply_with :message, text: t(:add_description)
+  rescue ActiveRecord::RecordNotFound
+    raise t(:could_not_find_city)
   end
 
   def q!(*args)
@@ -103,9 +105,11 @@ class TelegramWebhooksController < BaseController
 
   def create_link_from_message(*link)
     exit?
-    valid_url?
-    session[:restaurant].update(dp_link: link.join(''))
+    session[:restaurant].update!(dp_link: link.join(''))
     respond_with :message, text: t(:add_restaurant_successful)
+  rescue ActiveRecord::RecordInvalid
+    save_context :create_link_from_message
+    raise t(:url_validation_failed)
   end
 
   def edit_cities_callback_query(page)
@@ -180,7 +184,6 @@ class TelegramWebhooksController < BaseController
   #admin
 
   def confirm_new_restaurant(restaurant, user)
-    puts restaurant.inspect
     text = "#{user_name(user)} #{t(:submit_new_restaurant)}: \n"
     text << "#{restaurant.city.name}: \n#{restaurant.name}: #{restaurant.description}"
     Admin.all.each do |admin|
