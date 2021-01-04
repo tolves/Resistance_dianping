@@ -44,10 +44,11 @@ class BaseController < Telegram::Bot::UpdatesController
       end
     end
 
-    def pagination(resource, **args)
+    def pagination(size, pg_offset = 15, **args)
       page_kb = []
-      (1 .. ((resource.size - 1) / pg_offset) + 1).each do |p|
+      (1..((size - 1) / pg_offset) + 1).each do |p|
         next if p == (args[:page] + 1)
+
         page_kb.push({ text: p, callback_data: "#{args[:action]}:#{(p - 1)}" })
       end
       page_kb

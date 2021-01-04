@@ -10,7 +10,7 @@ class TelegramWebhooksController < BaseController
 
   # Commons
   def start!(*)
-    respond_with :message, text: t(:available_cities), reply_markup: { inline_keyboard: Cities.keyboard }
+    respond_with :message, text: t(:available_cities), reply_markup: { inline_keyboard: Cities.keyboard(page: 0) }
   end
 
   def help!(*)
@@ -106,6 +106,10 @@ class TelegramWebhooksController < BaseController
     valid_url?
     session[:restaurant].update(dp_link: link.join(''))
     respond_with :message, text: t(:add_restaurant_successful)
+  end
+
+  def edit_cities_callback_query(page)
+    edit_message :text, text: t(:available_cities), reply_markup: { inline_keyboard: Cities.keyboard(page: page) }
   end
 
   def list_restaurants_callback_query(city_id, *)
