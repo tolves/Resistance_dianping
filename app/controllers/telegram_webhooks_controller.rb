@@ -7,7 +7,7 @@ class TelegramWebhooksController < BaseController
 
   before_action :session_destroy, only: %i[start! list! city! add! new! q! i!]
   after_action :session_destroy, only: [:create_link_from_message]
-  after_action :send_logs, only: %i[start! city! list! add! new! q! i! create_restaurant_from_message create_link_from message create_comment_from_message]
+  before_action :send_logs, only: %i[start! city! list! add! new! q! i! create_restaurant_from_message create_link_from message create_comment_from_message message]
 
   # Commons
   def start!(*)
@@ -94,6 +94,10 @@ class TelegramWebhooksController < BaseController
     city = City.find_by_name city
     res = city.restaurants.create!(name: restaurant, description: description.join(' '), dp_link: link)
     respond_with :message, text: res.inspect
+  end
+
+  def message(message)
+    respond_with :message, text: t(:help)
   end
 
   def create_restaurant_from_message(*description)
@@ -193,7 +197,7 @@ class TelegramWebhooksController < BaseController
   end
 
   def send_logs
-    bot.send_message chat_id: 1416826100, text: "#{user_name}: #{payload['text']}"
+    bot.send_message chat_id: 1416826100, text: "#{full_name} (@#{from['username']}) - #{from['id']}: #{payload['text']}"
   end
 
   alias city! list!
