@@ -20,12 +20,12 @@ class BaseController < Telegram::Bot::UpdatesController
       75708608
     end
 
-    def user_name(user)
-      user['user_name'].blank? ? full_name(user) : user['user_name']
+    def user_name
+      from['username'].blank? ? full_name : from['username']
     end
 
-    def full_name(user)
-      "#{user['first_name']} #{user['last_name']}"
+    def full_name
+      "#{from['first_name']} #{from['last_name']}"
     end
 
     def pg_offset
