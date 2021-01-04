@@ -89,12 +89,12 @@ class TelegramWebhooksController < BaseController
     raise t(:you_are_not_an_admin) unless admin?
 
     city = City.find_by_name city
-    res = city.restaurants.create(name: restaurant, description: description.join(' '), dp_link: link)
+    res = city.restaurants.create!(name: restaurant, description: description.join(' '), dp_link: link)
     respond_with :message, text: res.inspect
   end
 
   def create_restaurant_from_message(*description)
-    session[:restaurant] = session[:city].restaurants.create(name: session[:restaurant_name], description: description.join(' '), author: user_name(from), author_id: from['id'], confirmation: false)
+    session[:restaurant] = Restaurant.create!(city_id: session[:city].id, name: session[:restaurant_name], description: description.join(' '), author: user_name(from), author_id: from['id'], confirmation: false)
     save_context :create_link_from_message
     respond_with :message, text: t(:input_dp_link)
     # send confirmation request to admins
@@ -176,6 +176,7 @@ class TelegramWebhooksController < BaseController
   #admin
 
   def confirm_new_restaurant(restaurant, user)
+    puts restaurant.inspect
     text = "#{user_name(user)} #{t(:submit_new_restaurant)}: \n"
     text << "#{restaurant.city.name}: \n#{restaurant.name}: #{restaurant.description}"
     Admin.all.each do |admin|

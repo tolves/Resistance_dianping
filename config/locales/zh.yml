@@ -39,3 +39,7 @@ zh:
   delete: "删除"
   my_posts: "我提交的馆子"
   add_new_comment: "添加了评论至"
+  activerecord:
+    errors:
+      messages:
+        record_invalid: '记录无效'

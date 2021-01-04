@@ -38,7 +38,7 @@ class BaseController < Telegram::Bot::UpdatesController
     end
 
     def valid_url?
-      unless payload['text'].match?(%r{^(https?)://[^\s/$.?#].[^\s]*$})
+      unless payload['text'].match?(%r{^(https?)://[^\s]+.com/[^\s]*$})
         save_context :create_link_from_message
         raise t(:url_validation_failed)
       end
