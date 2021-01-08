@@ -101,10 +101,6 @@ class TelegramWebhooksController < BaseController
     respond_with :message, text: res.inspect
   end
 
-  def message(message)
-    respond_with :message, text: t(:help)
-  end
-
   def create_restaurant_from_message(*description)
     session[:restaurant] = Restaurant.create!(city_id: session[:city].id, name: session[:restaurant_name], description: description.join(' '), author: user_name, author_id: from['id'], confirmation: false)
     save_context :create_link_from_message
@@ -195,8 +191,8 @@ class TelegramWebhooksController < BaseController
   end
 
   private
-  #admin
 
+  #admin
   def confirm_new_restaurant(restaurant, user)
     text = "#{user_name} #{t(:submit_new_restaurant)}: \n"
     text << "#{restaurant.city.name}: \n#{restaurant.name}: #{restaurant.description}"
@@ -207,5 +203,6 @@ class TelegramWebhooksController < BaseController
 
   alias city! list!
   alias new! add!
+  alias message help!
 
 end
