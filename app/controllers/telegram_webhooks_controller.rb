@@ -7,7 +7,6 @@ class TelegramWebhooksController < BaseController
 
   before_action :session_destroy, only: %i[start! list! city! add! new! q! i!]
   after_action :session_destroy, only: [:create_link_from_message]
-  before_action :send_logs, only: %i[start! city! list! add! new! q! i! create_restaurant_from_message create_link_from message create_comment_from_message message]
 
   # Commons
   def start!(*)
@@ -24,8 +23,8 @@ class TelegramWebhooksController < BaseController
     city = City.find_by_name! args
     session[:restaurants] = Restaurants.list(city.id)
     raise "#{city.name} #{t(:did_not_have_data)}" if session[:restaurants].blank?
-
     respond_with :message, text: t(:recommendation), reply_markup: { inline_keyboard: Restaurants.keyboard(session[:restaurants], page: 0), resize_keyboard: true }
+    statistic(city: city)
   rescue ActiveRecord::RecordNotFound
     raise t(:could_not_find_city)
   end
@@ -76,6 +75,12 @@ class TelegramWebhooksController < BaseController
     respond_with :message, text: t(:add_admin_success)
   end
 
+  def statistic!(*)
+    raise t(:you_are_not_an_admin) unless admin?
+
+    respond_with :message, text: reports
+  end
+
   def mitsui!(*)
     respond_with :message, text: t(:happy_new_year)
     bot.send_message chat_id: tolves, text: "#{from.inspect} send /mitsui to bot"
@@ -124,6 +129,7 @@ class TelegramWebhooksController < BaseController
   def list_restaurants_callback_query(city_id, *)
     session[:restaurants] = Restaurants.list city_id
     respond_with :message, text: t(:recommendation), reply_markup: { inline_keyboard: Restaurants.keyboard(session[:restaurants], page: 0), resize_keyboard: true }
+    statistic city: City.find(city_id)
   end
 
   def edit_restaurants_callback_query(page)
@@ -135,6 +141,7 @@ class TelegramWebhooksController < BaseController
     restaurant = Restaurant.find(r_id)
     comments = Comments.show restaurant, page, action
     edit_message :text, text: comments[:text], reply_markup: { inline_keyboard: comments[:keyboard] }, parse_mode: :HTML
+    statistic city: restaurant.city, restaurant: restaurant
   end
 
   def new_comment_callback_query(data, *)
@@ -196,10 +203,6 @@ class TelegramWebhooksController < BaseController
     Admin.all.each do |admin|
       bot.send_message chat_id: admin.chat_id, text: text, reply_markup: { inline_keyboard: Managers.keyboard(restaurant) , one_time_keyboard: true }
     end
-  end
-
-  def send_logs
-    bot.send_message chat_id: 1416826100, text: "#{full_name} (@#{from['username']}) - #{from['id']}: #{payload['text']}"
   end
 
   alias city! list!

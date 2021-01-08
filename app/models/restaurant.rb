@@ -3,6 +3,8 @@ class Restaurant < ApplicationRecord
   belongs_to :city, touch: true, counter_cache: true
   before_save :fix_counter_cache, if: ->(e) { !e.confirmation? }
   has_many :comments, dependent: :destroy
+  has_one :statistic, dependent: :destroy
+
   default_scope { where(confirmation: true) }
   scope :posts, ->(author_id) { where('author_id = ?', author_id) }
   scope :search, ->(args) { where("to_tsvector('english', name || ' ' || description) @@ to_tsquery(?)", args) }

@@ -53,6 +53,28 @@ class BaseController < Telegram::Bot::UpdatesController
       session_destroy
       raise t(:exit)
     end
+
+    def statistic(**args)
+      restaurant_id = args[:restaurant].blank? ? nil : args[:restaurant].id
+      s = Statistic.find_or_initialize_by(city_id: args[:city].id, restaurant_id: restaurant_id)
+      s.views += 1
+      s.save!
+    end
+
+    def reports
+      out = ''
+      Statistic.select(:city_id).group(:city_id).each do |c|
+        count,r = 0, "\n"
+        Statistic.where(city_id: c.city_id).each do |n|
+          if n.restaurant_id?
+            r << "    - #{Restaurant.find(n.restaurant_id).name}: #{n.views}\n"
+          end
+          count += n.views
+        end
+        out << "#{c.city.name}: #{count} #{r}"
+      end
+      out
+    end
   end
 
 end
