@@ -35,3 +35,5 @@ telegram:
   - setup webhook
 
   ``` bin/rake telegram:bot:set_webhook RAILS_ENV=production ```
+
+TODO: add a new model: statistics, string:keywords, integer: view_count
