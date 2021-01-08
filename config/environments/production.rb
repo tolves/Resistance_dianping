@@ -73,7 +73,7 @@ Rails.application.configure do
 
 
   # config.telegram_updates_controller.session_store = :redis_store, { expires_in: 1.month, url: ENV['REDIS_URL'] }
-  config.telegram_updates_controller.session_store = :redis_store, { expires_in: 1.month }
+  config.telegram_updates_controller.session_store = :redis_store, { expires_in: 7.days }
 
   routes.default_url_options = { host: ENV['URL'], protocol: 'https' }
 
