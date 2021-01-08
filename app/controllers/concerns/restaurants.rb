@@ -5,9 +5,8 @@ module Restaurants
 
   def self.list(city_id, **args)
     city = City.find(city_id)
-
     Rails.cache.fetch("#{city.cache_key_with_version}/restaurants") do
-      City.find(city_id).restaurants
+      city.restaurants
     end
   end
 
@@ -16,7 +15,7 @@ module Restaurants
 
     Rails.cache.fetch("#{restaurants.cache_key_with_version}/#{page}") do
       puts 'update keyboard caches'
-      kb = restaurants.limit(pg_offset).offset(page * pg_offset).map { |r| [{ text: "#{r.name}: #{r.description}", callback_data: "show_comments:#{r.id},#{page},edit_restaurants" }, { text: t(:link), url: r.link }] }
+      kb = restaurants.limit(pg_offset).offset(page * pg_offset).map { |r| [{ text: "#{r.c_count}#{r.name}: #{r.description}", callback_data: "show_comments:#{r.id},#{page},edit_restaurants" }, { text: t(:link), url: r.link }] }
       kb.push pagination(restaurants.size, page: page, action: 'edit_restaurants')
       kb.push [{text: t(:forwardable), callback_data: "output_restaurants:#{page}"}]
     end
