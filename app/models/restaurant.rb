@@ -1,6 +1,7 @@
 class Restaurant < ApplicationRecord
   extend ActionView::Helpers::TranslationHelper
-  belongs_to :city, touch: true
+  belongs_to :city, touch: true, counter_cache: true
+  before_save :fix_counter_cache, if: ->(e) { !e.confirmation? }
   has_many :comments, dependent: :destroy
   default_scope { where(confirmation: true) }
   scope :posts, ->(author_id) { where('author_id = ?', author_id) }
@@ -9,6 +10,14 @@ class Restaurant < ApplicationRecord
 
   def link
     dp_link.blank? ? "https://www.google.com/search?q=#{city.name} #{name}" : dp_link
+  end
+
+  def fix_counter_cache
+    City.decrement_counter(:restaurants_count, city_id)
+  end
+
+  def increment_counter
+    City.increment_counter(:restaurants_count, city_id)
   end
 
 end
