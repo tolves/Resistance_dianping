@@ -160,7 +160,9 @@ class TelegramWebhooksController < BaseController
   end
 
   def pass_callback_query(r_id, *)
-    Restaurant.unscoped.find(r_id).update(confirmation: true)
+    r = Restaurant.unscoped.find(r_id)
+    r.update!(confirmation: true)
+    r.increment_counter
     answer_callback_query t(:pass_new_confirmation)
   end
 
