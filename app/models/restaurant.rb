@@ -22,4 +22,8 @@ class Restaurant < ApplicationRecord
     City.increment_counter(:restaurants_count, city_id)
   end
 
+  def c_count
+    comments_count == 0 ? '' : "(#{comments_count})"
+  end
+
 end
