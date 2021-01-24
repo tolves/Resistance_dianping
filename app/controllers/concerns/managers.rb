@@ -4,7 +4,7 @@ module Managers
   extend ActionView::Helpers::TranslationHelper
 
   def self.create(chat_id)
-    raise 'chat_id must be Numeric' unless chat_id.match?(/^\d{7,}/)
+    raise 'chat_id must be Numeric' unless chat_id.match?(/^\d{10,}/)
 
     Admin.create(chat_id: chat_id)
   end
