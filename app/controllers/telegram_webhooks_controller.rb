@@ -8,7 +8,8 @@ class TelegramWebhooksController < BaseController
   before_action :session_destroy, only: %i[start! list! city! add! new! q! i!]
   after_action :session_destroy, only: [:create_link_from_message]
 
-  # Commons
+  # /start
+  # rake telegram:bot:poller
   def start!(*)
     respond_with :message, text: t(:available_cities), reply_markup: { inline_keyboard: Cities.keyboard(page: 0) }
   end
@@ -17,6 +18,7 @@ class TelegramWebhooksController < BaseController
     respond_with :message, text: t(:help), parse_mode: :MarkdownV2
   end
 
+  # /list city_name
   def list!(*args)
     raise t(:city_query) if args&.size != 1
 
@@ -29,6 +31,7 @@ class TelegramWebhooksController < BaseController
     raise t(:could_not_find_city)
   end
 
+  # /add city_name restaurant_name
   def add!(*args)
     raise t(:add_help) if args.size < 2
 
@@ -46,6 +49,7 @@ class TelegramWebhooksController < BaseController
     raise t(:could_not_find_city)
   end
 
+  # /q keywords
   def q!(*args)
     keywords = args.join('_')
     restaurants = Restaurant.search keywords
@@ -55,11 +59,13 @@ class TelegramWebhooksController < BaseController
     respond_with :message, text: keywords, reply_markup: { inline_keyboard: Restaurants.keyboard(session[:restaurants], page: 0), resize_keyboard: true }
   end
 
+  # /i
   def i!(*)
     session[:restaurants] = Restaurant.posts(from['id'])
     respond_with :message, text: t(:my_posts), reply_markup: { inline_keyboard: Restaurants.i(session[:restaurants], page: 0), resize_keyboard: true }
   end
 
+  # /delete city_name restaurant_name
   def delete!(*args)
     raise t(:you_are_not_an_admin) unless admin?
 
@@ -68,6 +74,7 @@ class TelegramWebhooksController < BaseController
     respond_with :message, text: t(:delete_restaurant_successful)
   end
 
+  # /admin user_chat_id
   def admin!(*args)
     raise t(:you_are_not_an_admin) unless admin?
 
@@ -75,17 +82,22 @@ class TelegramWebhooksController < BaseController
     respond_with :message, text: t(:add_admin_success)
   end
 
+  # /statistic
   def statistic!(*)
     raise t(:you_are_not_an_admin) unless admin?
-
-    respond_with :message, text: reports
+    results = reports.scan(/.{1,100}/).in_groups_of(70, false)
+    results.each do |r|
+      respond_with :message, text: r.join("\n")
+    end
   end
 
+  # /mitsui
   def mitsui!(*)
     respond_with :message, text: t(:happy_new_year)
     bot.send_message chat_id: tolves, text: "#{from.inspect} send /mitsui to bot"
   end
 
+  # /exec_city city_name province  Add a new city
   def exec_city!(*args)
     raise t(:you_are_not_an_admin) unless admin?
 
@@ -93,6 +105,8 @@ class TelegramWebhooksController < BaseController
     respond_with :message, text: res.inspect
   end
 
+  # /exec city restaurant link description
+  # Add a new restaurant by command
   def exec!(city, restaurant, link, *description)
     raise t(:you_are_not_an_admin) unless admin?
 
