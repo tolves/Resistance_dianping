@@ -210,9 +210,7 @@ class TelegramWebhooksController < BaseController
   def confirm_new_restaurant(restaurant, user)
     text = "#{user_name} #{t(:submit_new_restaurant)}: \n"
     text << "#{restaurant.city.name}: \n#{restaurant.name}: #{restaurant.description}"
-    Admin.all.each do |admin|
-      bot.send_message chat_id: admin.chat_id, text: text, reply_markup: { inline_keyboard: Managers.keyboard(restaurant) , one_time_keyboard: true }
-    end
+    bot.send_message chat_id: Admin.first.chat_id, text: text, reply_markup: { inline_keyboard: Managers.keyboard(restaurant) , one_time_keyboard: true }
   end
 
   alias city! list!
